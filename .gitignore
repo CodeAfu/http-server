@@ -1,3 +1,5 @@
 build
 build/
 build/*
+.env
+learning-resources.txt

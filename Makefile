@@ -8,10 +8,10 @@ all: build
 configure:
 	cmake -S . -B $(BUILD_DIR) -G Ninja
 
-build: configure
+build:
 	cmake --build $(BUILD_DIR)
 
-run: build
+run: configure build
 	./$(BUILD_DIR)/$(TARGET)
 
 clean:
