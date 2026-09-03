@@ -1,0 +1,9 @@
+# ninja log v7
+1	11	1788368636118770000	/mnt/windows/Users/Genzoku/shared/linux-projects/http-server/build/CMakeFiles/cmake.verify_globs	327d2aed8d1bb62
+12	390	1788368544628864500	CMakeFiles/http-server.dir/src/main.cpp.o	44d1c10f3d071f06
+1466	1517	1788368637584752000	http-server	9da0d822f29a55b8
+12	26	1788368521329070000	CMakeFiles/http-server.dir/src/router.cpp.o	6ccaf89fca849df8
+12	1465	1788368636129769900	CMakeFiles/http-server.dir/src/server.cpp.o	d8d9b983a8bc7678
+1	9	1788368643376681000	/mnt/windows/Users/Genzoku/shared/linux-projects/http-server/build/CMakeFiles/cmake.verify_globs	327d2aed8d1bb62
+10	1131	1788368643385680900	CMakeFiles/http-server.dir/src/server.cpp.o	d8d9b983a8bc7678
+1132	1183	1788368644507667200	http-server	9da0d822f29a55b8

@@ -1,0 +1,3 @@
+/mnt/windows/Users/Genzoku/shared/linux-projects/http-server/build/CMakeFiles/http-server.dir
+/mnt/windows/Users/Genzoku/shared/linux-projects/http-server/build/CMakeFiles/edit_cache.dir
+/mnt/windows/Users/Genzoku/shared/linux-projects/http-server/build/CMakeFiles/rebuild_cache.dir

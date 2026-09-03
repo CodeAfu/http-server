@@ -1,0 +1,7 @@
+{
+	"InstallScripts" : 
+	[
+		"/mnt/windows/Users/Genzoku/shared/linux-projects/http-server/build/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

@@ -1,0 +1,20 @@
+[
+{
+  "directory": "/mnt/windows/Users/Genzoku/shared/linux-projects/http-server/build",
+  "command": "/usr/bin/c++ -I/mnt/windows/Users/Genzoku/shared/linux-projects/http-server/src/include -std=gnu++26 -o CMakeFiles/http-server.dir/src/main.cpp.o -c /mnt/windows/Users/Genzoku/shared/linux-projects/http-server/src/main.cpp",
+  "file": "/mnt/windows/Users/Genzoku/shared/linux-projects/http-server/src/main.cpp",
+  "output": "/mnt/windows/Users/Genzoku/shared/linux-projects/http-server/build/CMakeFiles/http-server.dir/src/main.cpp.o"
+},
+{
+  "directory": "/mnt/windows/Users/Genzoku/shared/linux-projects/http-server/build",
+  "command": "/usr/bin/c++ -I/mnt/windows/Users/Genzoku/shared/linux-projects/http-server/src/include -std=gnu++26 -o CMakeFiles/http-server.dir/src/router.cpp.o -c /mnt/windows/Users/Genzoku/shared/linux-projects/http-server/src/router.cpp",
+  "file": "/mnt/windows/Users/Genzoku/shared/linux-projects/http-server/src/router.cpp",
+  "output": "/mnt/windows/Users/Genzoku/shared/linux-projects/http-server/build/CMakeFiles/http-server.dir/src/router.cpp.o"
+},
+{
+  "directory": "/mnt/windows/Users/Genzoku/shared/linux-projects/http-server/build",
+  "command": "/usr/bin/c++ -I/mnt/windows/Users/Genzoku/shared/linux-projects/http-server/src/include -std=gnu++26 -o CMakeFiles/http-server.dir/src/server.cpp.o -c /mnt/windows/Users/Genzoku/shared/linux-projects/http-server/src/server.cpp",
+  "file": "/mnt/windows/Users/Genzoku/shared/linux-projects/http-server/src/server.cpp",
+  "output": "/mnt/windows/Users/Genzoku/shared/linux-projects/http-server/build/CMakeFiles/http-server.dir/src/server.cpp.o"
+}
+]
