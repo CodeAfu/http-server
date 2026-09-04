@@ -1,7 +1,8 @@
 #pragma once
 
-#include "http.hpp"
 #include <stdexcept>
+
+struct addrinfo;
 
 namespace srv {
 
@@ -11,7 +12,7 @@ public:
         : std::runtime_error(msg) {}
 };
 
-bool init(const http::AddrInfo& addr_info);
+bool init(const addrinfo& addr_info);
 char* parse(char line[], const char symbol[]);
 
 }

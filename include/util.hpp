@@ -1,9 +1,14 @@
 #pragma once
 
-#include "server.hpp"
 #include <concepts>
 #include <print>
 #include <utility>
+#include <cstddef>
+
+#include "server.hpp"
+
+struct sockaddr_in;
+struct sockaddr_in6;
 
 namespace util {
 
@@ -23,5 +28,8 @@ int tryCatch(F&& func) {
     }
     return 0;
 }
+
+void get_ipv4(sockaddr_in &sa, const char* addr, char *out, size_t out_len);
+void get_ipv6(sockaddr_in6 &sa6, const char* addr, char *out, size_t out_len);
 
 }; // namespace util
