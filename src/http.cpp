@@ -5,7 +5,7 @@
 
   namespace http {
 
-  void display_addr_info(const ::addrinfo& addr_info) {
+  void display_addr_info(const addrinfo& addr_info) {
       char ipstr[INET6_ADDRSTRLEN]{};
       const void* network_address = nullptr;
       const char* family_str = nullptr;
