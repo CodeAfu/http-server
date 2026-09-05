@@ -4,9 +4,19 @@
 #include <sys/socket.h>
 
 #include "http.hpp"
+#include "util.hpp"
 #include "server.hpp"
 
-constexpr uint16_t PORT = 8001;
+constexpr uint16_t PORT = 8096;
+
+addrinfo* srv::ServerState::get_addrinfo() {
+    return srv::ServerState::m_addrinfo;
+}
+
+srv::ServerState::~ServerState() {
+    if (m_addrinfo != nullptr) 
+        freeaddrinfo(m_addrinfo); // free the linked list
+}
 
 bool srv::init() {
     // throw server_error("test");
@@ -17,46 +27,90 @@ bool srv::init() {
     };
     std::string port_str = std::to_string(PORT);
 
-    addrinfo *servinfo =
-        http::get_addr_info("127.0.0.1", port_str.c_str(), hints);
+    addrinfo *serv_info =
+        http::get_addr_info(nullptr, port_str.c_str(), hints);
 
-    int srv_fd = socket(servinfo->ai_family, servinfo->ai_socktype,
-                        servinfo->ai_protocol);
-    if (srv_fd == -1) {
+    for (addrinfo *p = serv_info; p != nullptr; p = p->ai_next) {
+        http::print_addr_info(*p);
+    }
+
+    int sock_fd = socket(serv_info->ai_family, serv_info->ai_socktype,
+                         serv_info->ai_protocol);
+    if (sock_fd == -1) {
         int error = errno;
         std::println(stderr, "socket failed: {} (errno={})",
-                     std::strerror(error), error);
+                     std::strerror(error),
+                     error);
+        return false;
     }
-    std::println("File descriptor created");
+    util::devprint("File descriptor created");
+
+    int yes = 1;
+    setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof yes); // fix "Address already in use" error
+
+    int bind_result = bind(sock_fd, serv_info->ai_addr, serv_info->ai_addrlen);
+    if (bind_result == -1) {
+        int error = errno;
+        std::println(stderr, "bind failed: {} (errno{})",
+                     std::strerror(error),
+                     error);
+        return false;
+    }
+    util::devprint("Bind success");
 
     std::println("Running HTTP server on port {}", PORT);
 
+    int conn_result = connect(sock_fd, serv_info->ai_addr, serv_info->ai_addrlen);
+    if (conn_result == -1) {
+        int error = errno;
+        std::println(stderr, "connection failed: {} (errno{})",
+                     std::strerror(error),
+                     error);
+    }
+    util::devprint("Connection success");
+
     // cleanup
-    freeaddrinfo(servinfo); // free the linked list
+    freeaddrinfo(serv_info); // free the linked list
+
+    // Uncomment after you figure out how to deal with the pointers
+    // ServerState state = ServerState(serv_info);
     return true;
 }
 
-char *srv::parse(char line[], const char symbol[]) {
+bool srv::conn(int sock_fd, addrinfo *srv) {
+    int res = connect(sock_fd, srv->ai_addr, srv->ai_addrlen);
+    if (res == -1) {
+        int error = errno;
+        std::println(stderr, "connection failed: {} (errno{})",
+                     std::strerror(error),
+                     error);
+        return false;
+    }
+    util::devprint("Connection success");
+    return true;
+}
+
+char* srv::parse(char line[], const char symbol[]) {
     char *copy = (char *)malloc(strlen(line) + 1);
+    if (copy == NULL) 
+        return NULL;
+
     strcpy(copy, line);
 
-    char *message;
-    char *token = strtok(copy, symbol);
-    char current = 0;
+    strtok(copy, symbol);
+    char *token = strtok(NULL, " ");
+    const char *source;
 
-    while (token != NULL) {
-        token = strtok(NULL, " ");
-        if (current == 0) {
-            message = token;
-            if (message == NULL) {
-                message = "";
-            }
-            return message;
-        }
-        current = current + 1;
-    }
+    if (token == NULL)
+        source = "";
+    else 
+        source = token;
 
-    free(message);
-    free(token);
+    char *message= (char *)malloc(strlen(source) + 1);
+    if (message != NULL) 
+        strcpy(message, source);
+
+    free(copy);
+
     return message;
 }

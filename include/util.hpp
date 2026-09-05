@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdlib>
+#include <cstring>
 #include <concepts>
 #include <print>
 #include <utility>
@@ -27,6 +29,17 @@ int tryCatch(F&& func) {
         return 1;
     }
     return 0;
+}
+
+template <typename... Args>
+inline void devprint(std::format_string<Args...> fmt, Args&&... values) {
+    const char* env = std::getenv("ENV");
+    if (env == nullptr || std::strcmp(env, "development") != 0) {
+        return;
+    }
+    std::print("\x1b[33m");
+    std::print(fmt, std::forward<Args>(values)...);
+    std::println("\x1b[0m");
 }
 
 void get_ipv4(sockaddr_in &sa, const char* addr, char *out, size_t out_len);

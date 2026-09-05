@@ -12,7 +12,7 @@ build:
 	cmake --build $(BUILD_DIR)
 
 run: configure build
-	./$(BUILD_DIR)/$(TARGET)
+	ENV=development ./$(BUILD_DIR)/$(TARGET)
 
 clean:
 	rm -rf $(BUILD_DIR)

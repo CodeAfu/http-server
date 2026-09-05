@@ -8,7 +8,7 @@ while true; do
     clear
     if [[ $VERBOSE -eq 1 ]]; then
         make build && { inotifywait -e modify -r src/ include/ &>/dev/null; continue; }
-        ./build/http-server &
+        ENV=development ./build/http-server &
     else
         OUTPUT=$(make build 2>&1)
         if [[ $? -ne 0 ]]; then
@@ -16,7 +16,7 @@ while true; do
             inotifywait -e modify -r src/ include/ &>/dev/null
             continue
         fi
-        ./build/http-server &
+        ENV=development ./build/http-server &
     fi
     PID=$!
     inotifywait -e modify -r src/ include/ &>/dev/null

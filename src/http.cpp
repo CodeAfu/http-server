@@ -4,6 +4,7 @@
 #include <print>
 
 #include "http.hpp"
+#include "util.hpp"
 
 addrinfo *http::get_addr_info(const char *host, const char* port, const ::addrinfo &hints) {
     addrinfo *results = nullptr;
@@ -35,7 +36,7 @@ void http::print_addr_info(const ::addrinfo &addr_info) {
         family = "IPv6";
     }
 
-    std::println(
+    util::devprint(
         "{} {}:{} socktype={} protocol={} flags={} canon={} addrlen={}", family,
         host, service, addr_info.ai_socktype, addr_info.ai_protocol,
         addr_info.ai_flags,

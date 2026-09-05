@@ -28,10 +28,6 @@ int main(int argc, char *argv[]) {
     sa6.sin6_addr = IN6ADDR_ANY_INIT;
     inet_ntop(AF_INET6, &(sa6.sin6_addr), ipv6_text, INET6_ADDRSTRLEN);
 
-    std::println();
-    std::println("ipv4={}", ipv4_text);
-    std::println("ipv6={}", ipv6_text);
-
     return util::tryCatch([] {
         if (!srv::init()) {
             return 1;
@@ -41,7 +37,7 @@ int main(int argc, char *argv[]) {
 }
 
 void sample() {
-    std::println("---  SAMPLE  ---");
+    util::devprint("---  SAMPLE  ---");
     addrinfo hints;
     addrinfo *servinfo = nullptr;
 
@@ -60,5 +56,5 @@ void sample() {
     }
 
     freeaddrinfo(servinfo);
-    std::println("---  /SAMPLE  ---");
+    util::devprint("---  /SAMPLE  ---");
 }
