@@ -3,3 +3,5 @@ build/
 build/*
 .env
 learning-resources.txt
+.worktrees
+.worktrees/

@@ -1,23 +1,17 @@
 // #include "util.hpp"
-#include <cstring>
-#include <print>
-#include <netdb.h>
 #include <arpa/inet.h>
+#include <cstring>
+#include <netdb.h>
+#include <print>
 
-#include "server.hpp"
 #include "http.hpp"
+#include "server.hpp"
 #include "util.hpp"
 
 void sample();
 
 int main(int argc, char *argv[]) {
-    std::println("Initalizing...");
-
-    addrinfo addr_info = addrinfo{
-        .ai_flags = AI_PASSIVE, // fill the ip for me
-        .ai_family = AF_INET, // IPv4
-        .ai_socktype = SOCK_STREAM, // TCP stream sockets
-    };
+    sample();
 
     in6_addr ia6 = IN6ADDR_ANY_INIT;
 
@@ -29,40 +23,42 @@ int main(int argc, char *argv[]) {
 
     sockaddr_in6 sa6{};
     char ipv6_text[INET6_ADDRSTRLEN];
-    // util::get_ipv6(sa6, "2001:db8:5413:4028::9db9", ipv6_text, sizeof(ipv6_text));
+    // util::get_ipv6(sa6, "2001:db8:5413:4028::9db9", ipv6_text,
+    // sizeof(ipv6_text));
     sa6.sin6_addr = IN6ADDR_ANY_INIT;
     inet_ntop(AF_INET6, &(sa6.sin6_addr), ipv6_text, INET6_ADDRSTRLEN);
 
-
+    std::println();
     std::println("ipv4={}", ipv4_text);
     std::println("ipv6={}", ipv6_text);
 
-    sample();
-
-    return util::tryCatch([&addr_info] {
-        if (!srv::init(addr_info)) {
+    return util::tryCatch([] {
+        if (!srv::init()) {
             return 1;
         }
-        addrinfo* addr_results = http::display_addr_info(addr_info);
-        freeaddrinfo(addr_results);
         return 0;
     });
 }
 
 void sample() {
-    int status;
+    std::println("---  SAMPLE  ---");
     addrinfo hints;
-    addrinfo* servinfo;
+    addrinfo *servinfo = nullptr;
 
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
 
-    status = getaddrinfo("www.example.net", "3490", &hints, &servinfo);
-    
-    for (addrinfo* curr = servinfo; curr == nullptr; curr = curr->ai_next) {
-         
+    int status = getaddrinfo("projectzoku.site", "443", &hints, &servinfo);
+    if (status != 0) {
+        std::println(stderr, "fail: {}", gai_strerror(status));
+        return;
+    }
+
+    for (addrinfo *p = servinfo; p != nullptr; p = p->ai_next) {
+        http::print_addr_info(*p);
     }
 
     freeaddrinfo(servinfo);
+    std::println("---  /SAMPLE  ---");
 }

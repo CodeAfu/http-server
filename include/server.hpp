@@ -12,7 +12,7 @@ public:
         : std::runtime_error(msg) {}
 };
 
-bool init(const addrinfo& addr_info);
+bool init();
 char* parse(char line[], const char symbol[]);
 
 }

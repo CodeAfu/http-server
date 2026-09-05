@@ -3,26 +3,31 @@
 #include <print>
 #include <sys/socket.h>
 
+#include "http.hpp"
 #include "server.hpp"
 
 constexpr uint16_t PORT = 8001;
 
-namespace srv {
-
-bool init(const addrinfo& addr_info) {
+bool srv::init() {
     // throw server_error("test");
-    addrinfo hints{};
-    addrinfo* servinfo;
-
-    int srv_fd = socket(addr_info.ai_family, addr_info.ai_socktype, 0);
-    std::println("File descriptor created");
-
+    addrinfo hints = addrinfo{
+        .ai_flags = AI_PASSIVE,     // fill the ip for me
+        .ai_family = AF_INET,       // IPv4
+        .ai_socktype = SOCK_STREAM, // TCP stream sockets
+    };
     std::string port_str = std::to_string(PORT);
-    int get_addr_status = getaddrinfo(nullptr, port_str.c_str(), &addr_info, &servinfo);
-    if (get_addr_status != 0) {
-        std::println(stderr, "getaddrinfo failed: {}", gai_strerror(get_addr_status));
-        return false;
+
+    addrinfo *servinfo =
+        http::get_addr_info("127.0.0.1", port_str.c_str(), hints);
+
+    int srv_fd = socket(servinfo->ai_family, servinfo->ai_socktype,
+                        servinfo->ai_protocol);
+    if (srv_fd == -1) {
+        int error = errno;
+        std::println(stderr, "socket failed: {} (errno={})",
+                     std::strerror(error), error);
     }
+    std::println("File descriptor created");
 
     std::println("Running HTTP server on port {}", PORT);
 
@@ -31,7 +36,7 @@ bool init(const addrinfo& addr_info) {
     return true;
 }
 
-char *parse(char line[], const char symbol[]) {
+char *srv::parse(char line[], const char symbol[]) {
     char *copy = (char *)malloc(strlen(line) + 1);
     strcpy(copy, line);
 
@@ -55,5 +60,3 @@ char *parse(char line[], const char symbol[]) {
     free(token);
     return message;
 }
-
-} // namespace srv
