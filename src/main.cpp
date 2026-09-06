@@ -11,8 +11,7 @@
 void sample();
 
 int main(int argc, char *argv[]) {
-    sample();
-
+    // sample();
     in6_addr ia6 = IN6ADDR_ANY_INIT;
 
     sockaddr_in sa{};
