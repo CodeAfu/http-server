@@ -29,7 +29,7 @@ int main(int argc, char *argv[]) {
     inet_ntop(AF_INET6, &(sa6.sin6_addr), ipv6_text, INET6_ADDRSTRLEN);
 
     return util::tryCatch([] {
-        if (!srv::init()) {
+        if (!srv::init_srv()) {
             return 1;
         }
         return 0;

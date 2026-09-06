@@ -1,6 +1,7 @@
 #include <cstring>
 #include <netdb.h>
 #include <print>
+#include <source_location>
 #include <sys/socket.h>
 
 #include "http.hpp"
@@ -9,16 +10,18 @@
 
 constexpr uint16_t PORT = 8096;
 
-addrinfo* srv::ServerState::get_addrinfo() {
-    return srv::ServerState::m_addrinfo;
-}
+template <typename F>
+bool try_srv_func(
+    F&& func,
+    std::source_location location = std::source_location::current()
+);
 
 srv::ServerState::~ServerState() {
     if (m_addrinfo != nullptr) 
         freeaddrinfo(m_addrinfo); // free the linked list
 }
 
-bool srv::init() {
+bool srv::init_srv() {
     // throw server_error("test");
     addrinfo hints = addrinfo{
         .ai_flags = AI_PASSIVE,     // fill the ip for me
@@ -34,6 +37,7 @@ bool srv::init() {
         http::print_addr_info(*p);
     }
 
+    // use try_srv_func
     int sock_fd = socket(serv_info->ai_family, serv_info->ai_socktype,
                          serv_info->ai_protocol);
     if (sock_fd == -1) {
@@ -48,6 +52,7 @@ bool srv::init() {
     int yes = 1;
     setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof yes); // fix "Address already in use" error
 
+    // use try_srv_func
     int bind_result = bind(sock_fd, serv_info->ai_addr, serv_info->ai_addrlen);
     if (bind_result == -1) {
         int error = errno;
@@ -58,16 +63,28 @@ bool srv::init() {
     }
     util::devprint("Bind success");
 
-    std::println("Running HTTP server on port {}", PORT);
-
-    int conn_result = connect(sock_fd, serv_info->ai_addr, serv_info->ai_addrlen);
-    if (conn_result == -1) {
+    int l = listen(sock_fd, SOMAXCONN);
+    if (l == -1) { 
         int error = errno;
-        std::println(stderr, "connection failed: {} (errno{})",
-                     std::strerror(error),
-                     error);
+        std::println(stderr, "listen failed: {} (errno{})",
+                     std::strerror(error), error);
     }
-    util::devprint("Connection success");
+    std::println("Listening on port {}", PORT);
+
+    // int conn_result = connect(sock_fd, serv_info->ai_addr, serv_info->ai_addrlen);
+    // if (conn_result == -1) {
+    //     int error = errno;
+    //     std::println(stderr, "connection failed: {} (errno{})",
+    //                  std::strerror(error),
+    //                  error);
+    //     return false;
+    // }
+    // util::devprint("Connection success");
+
+    // if (!try_srv_func([&] {
+    //     return connect(sock_fd, serv_info->ai_addr, serv_info->ai_addrlen);
+    // }))
+    //     return false;
 
     // cleanup
     freeaddrinfo(serv_info); // free the linked list
@@ -113,4 +130,20 @@ char* srv::parse(char line[], const char symbol[]) {
     free(copy);
 
     return message;
+}
+
+template <typename F>
+bool try_srv_func(
+    F&& func,
+    std::source_location location
+) {
+    int result = func();
+    if (result == -1) {
+        int error = errno;
+        std::println(stderr, "{}:{} failed, {} (errno{}) [{}]",
+                     location.file_name(), location.line(),
+                     std::strerror(error), error, location.function_name());
+        return false;
+    }
+    return result != 1;
 }

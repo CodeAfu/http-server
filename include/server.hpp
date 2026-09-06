@@ -12,21 +12,17 @@ public:
         : std::runtime_error(msg) {}
 };
 
-class ServerState {
-public:
-    ServerState(addrinfo* addrinfo)
-        : m_addrinfo(addrinfo) {}
-    ~ServerState();
-    addrinfo* get_addrinfo();
-private:
+struct ServerState {
     addrinfo* m_addrinfo;
     bool m_success;
     std::string* error;
     int errno;
+
+    ~ServerState();
 };
 
-bool init();
+bool init_srv();
 bool conn(int sock_fd, addrinfo *srv);
 char* parse(char line[], const char symbol[]);
 
-}
+} // namespace srv
