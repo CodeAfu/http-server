@@ -28,9 +28,12 @@ int main(int argc, char *argv[]) {
     inet_ntop(AF_INET6, &(sa6.sin6_addr), ipv6_text, INET6_ADDRSTRLEN);
 
     return util::tryCatch([] {
-        if (!srv::init_srv()) {
+        srv::Server s = srv::init();
+        if (!s.success) {
             return 1;
         }
+        util::devprint("Server File Descriptor: {}", s.sock_fd);
+        srv::run(s);
         return 0;
     });
 }

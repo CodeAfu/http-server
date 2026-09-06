@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdexcept>
+#include <sys/socket.h>
 
 struct addrinfo;
 struct sockaddr_storage;
@@ -13,21 +14,28 @@ public:
         : std::runtime_error(msg) {}
 };
 
-struct ServerState {
-    addrinfo* addr_info = nullptr;
-    sockaddr_storage* client_addr = nullptr;
-    bool success;
-    std::string* error = nullptr;
+struct Server {
+    int sock_fd = -1;
+    ::addrinfo* addr_info = nullptr;
+    int n_conn = 4096; // <sys/socket.h> SOMAXCONN
+    bool success = false;
+    std::string error;
     int error_no = 0;
 
-    ~ServerState();
+    ~Server();
 };
 
-bool init_srv();
-bool bind(int srv_fd, const addrinfo *addr_info);
-bool listen(int srv_fd, int n_conn);
-bool connect(int client_fd, const addrinfo *srv_addr);
-bool accept(int srv_fd, sockaddr_storage &client_addr);
+struct ClientConnection {
+    int fd;
+    sockaddr_storage address;
+};
+
+Server init();
+void run(Server& s);
+bool bind(Server& s);
+bool listen(Server& s);
+bool connect(int client_fd, const ::addrinfo *srv_addr);
+bool accept(Server& s, ::sockaddr_storage& client_addr);
 char* parse(char line[], const char symbol[]);
 
 } // namespace srv

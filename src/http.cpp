@@ -43,3 +43,38 @@ void http::print_addr_info(const ::addrinfo &addr_info) {
         addr_info.ai_canonname ? addr_info.ai_canonname : "(none)",
         addr_info.ai_addrlen);
 }
+
+bool send_msg(int sock_fd, const std::string& msg, int flags = 0) {
+    std::size_t total = 0;
+    while (total < msg.size()) {
+        ssize_t sent = ::send(
+            sock_fd,
+            msg.data() + total,
+            msg.size() - total,
+            flags
+        );
+        
+        if (sent == -1) {
+            if (errno == EINTR) {
+                continue;
+            }
+            return false;
+        }
+
+        if (sent == 0) {
+            return false;
+        }
+
+        total += static_cast<std::size_t>(sent);
+    }
+    return true;
+}
+
+const std::string& recv_msg(int sock_fd, std::string& msg, int flags = 0) {
+    ssize_t received = ::recv(sock_fd, msg.data(), msg.size(), flags);
+    if (received <= 0)
+        msg.clear();
+
+    msg.resize(received);
+    return msg;
+}
