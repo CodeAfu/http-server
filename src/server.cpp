@@ -3,6 +3,7 @@
 #include <print>
 #include <source_location>
 #include <sys/socket.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 #include "http.hpp"
@@ -11,23 +12,14 @@
 
 constexpr uint16_t PORT = 8096;
 
-namespace srv {
-
 // private
+namespace srv {
 template <typename F>
 bool try_srv_func(
     F&& func,
     std::source_location location = std::source_location::current()
 );
 } // namespace srv
-
-srv::Server::~Server() {
-    util::devprint("Server destructor called");
-    if (sock_fd != -1)
-        ::close(sock_fd);
-    if (addr_info != nullptr) 
-        freeaddrinfo(addr_info); // free the linked list
-}
 
 void srv::run(Server& s) {
     std::println("Running server");
@@ -67,12 +59,20 @@ srv::Server srv::init() {
         std::println(stderr, "socket failed: {} (errno={})",
                      server.error,
                      server.error_no);
-        srv::Server();
+        return server;
     }
     util::devprint("File descriptor created. srv_fd={}", server.sock_fd);
 
     int yes = 1;
-    setsockopt(server.sock_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)); // fix "Address already in use" error
+    int sock_opt = ::setsockopt(server.sock_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)); // fix "Address already in use" error
+    if (sock_opt == -1) {
+        server.error_no = errno;
+        server.error = std::strerror(server.error_no);
+        std::println(stderr, "setsockopt failed: {} (errno={})",
+                     server.error,
+                     server.error_no);
+        return server;
+    }
 
     if (!srv::bind(server))
         return server;
@@ -98,7 +98,7 @@ bool srv::bind(Server& s) {
     if (res == -1) {
         s.error_no = errno; 
         s.error = std::strerror(s.error_no);
-        std::println(stderr, "bind failed: {} (errno{})",
+        std::println(stderr, "bind failed: {} (errno={})",
                      s.error,
                      s.error_no);
         return false;
@@ -111,7 +111,7 @@ bool srv::listen(Server& s) {
     int res = ::listen(s.sock_fd, s.n_conn);
     if (res == -1) { 
         int error = errno;
-        std::println(stderr, "listen failed: {} (errno{})",
+        std::println(stderr, "listen failed: {} (errno={})",
                      std::strerror(error), error);
         return false;
     }
@@ -138,7 +138,7 @@ bool srv::accept(Server& s, ::sockaddr_storage& client_addr) {
     if (client_fd == -1) {
         int error = errno;
         s.error = std::strerror(error);
-        std::println(stderr, "connection failed: {} (errno{})",
+        std::println(stderr, "connection failed: {} (errno={})",
                      std::strerror(error),
                      error);
         return false;
@@ -172,8 +172,23 @@ char* srv::parse(char line[], const char symbol[]) {
     return message;
 }
 
+srv::Server::~Server() {
+    util::devprint("Server destructor called");
+    if (sock_fd != -1)
+        ::close(sock_fd);
+    if (addr_info != nullptr) 
+        freeaddrinfo(addr_info); // free the linked list
+}
+
 // private
 namespace srv {
+void sigchld_handler(int s) {
+    (void)s;
+    int saved_errno = errno;
+    while(waitpid(-1, NULL, WNOHANG) > 0);
+    errno = saved_errno;
+}
+
 template <typename F>
 bool try_srv_func(
     F&& func,
@@ -190,3 +205,4 @@ bool try_srv_func(
     return result != 1;
 }
 } // namespace srv
+

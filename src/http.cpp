@@ -6,7 +6,7 @@
 #include "http.hpp"
 #include "util.hpp"
 
-addrinfo *http::get_addr_info(const char *host, const char* port, const ::addrinfo &hints) {
+addrinfo* http::get_addr_info(const char *host, const char* port, const ::addrinfo &hints) {
     addrinfo *results = nullptr;
     int error = getaddrinfo(host, port, &hints, &results);
     if (error != 0) {
@@ -15,6 +15,17 @@ addrinfo *http::get_addr_info(const char *host, const char* port, const ::addrin
     }
     return results;
 }
+
+void* http::get_in_addr(::sockaddr *sa) {
+    if (sa->sa_family == AF_INET) {
+        return &(((sockaddr_in *)sa)->sin_addr);
+    } else if (sa->sa_family == AF_INET6) {
+        return &(((sockaddr_in6 *)sa)->sin6_addr);
+    }
+    std::println(stderr, "get_in_addr error: no sockinaddr found.");
+    return nullptr;
+}
+
 
 void http::print_addr_info(const ::addrinfo &addr_info) {
     char host[NI_MAXHOST]{};

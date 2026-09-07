@@ -17,7 +17,7 @@ public:
 struct Server {
     int sock_fd = -1;
     ::addrinfo* addr_info = nullptr;
-    int n_conn = 4096; // <sys/socket.h> SOMAXCONN
+    int n_conn = 10; // <sys/socket.h> SOMAXCONN = 4096
     bool success = false;
     std::string error;
     int error_no = 0;
@@ -36,6 +36,7 @@ bool bind(Server& s);
 bool listen(Server& s);
 bool connect(int client_fd, const ::addrinfo *srv_addr);
 bool accept(Server& s, ::sockaddr_storage& client_addr);
+void* get_in_addr(::sockaddr *sa);
 char* parse(char line[], const char symbol[]);
 
 } // namespace srv
