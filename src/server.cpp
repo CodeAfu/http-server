@@ -24,11 +24,11 @@ void sigchld_handler(int s);
 } // namespace srv
 
 void srv::run(Server& srv) {
-    struct sigaction sa{};
     sockaddr_storage client_addr;
     char s[INET6_ADDRSTRLEN];
 
-    // cleanup forks?
+    // cleanup zombie processes
+    struct sigaction sa{};
     sa.sa_handler = sigchld_handler;
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = SA_RESTART;
