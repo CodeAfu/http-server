@@ -1,10 +1,11 @@
+#include <arpa/inet.h>
 #include <cstring>
 #include <netdb.h>
 #include <print>
 #include <source_location>
 #include <sys/socket.h>
-#include <sys/wait.h>
 #include <unistd.h>
+#include <sys/wait.h>
 
 #include "http.hpp"
 #include "util.hpp"
@@ -19,15 +20,38 @@ bool try_srv_func(
     F&& func,
     std::source_location location = std::source_location::current()
 );
+void sigchld_handler(int s);
 } // namespace srv
 
-void srv::run(Server& s) {
-    std::println("Running server");
-    sockaddr_storage client_fd;
+void srv::run(Server& srv) {
+    struct sigaction sa{};
+    sockaddr_storage client_addr;
+    char s[INET6_ADDRSTRLEN];
 
+    // cleanup forks?
+    sa.sa_handler = sigchld_handler;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = SA_RESTART;
+    if (sigaction(SIGCHLD, &sa, nullptr) == -1) {
+        std::println(stderr, "sigaction");
+        exit(1);
+    }
+
+    // temporary printing
+    std::println("Waiting for connections");
+     
     while (true) {
-        ::sleep(1);
         util::devprint("poll");
+        socklen_t sin_size = sizeof(client_addr);
+        int client_fd = srv::accept(srv, client_addr);
+        if (client_fd == -1) 
+            continue;
+::
+        inet_ntop(client_addr.ss_family,
+                    http::get_in_addr((sockaddr *)&client_addr),
+                    s,
+                    sizeof(s));
+        std::println("server: received connection from {}", s);
     }
 
     std::println("Closing in 3 seconds...");
@@ -132,7 +156,7 @@ bool srv::connect(int client_fd, const ::addrinfo *srv_addr) {
     return true;
 }
 
-bool srv::accept(Server& s, ::sockaddr_storage& client_addr) {
+int srv::accept(Server& s, ::sockaddr_storage& client_addr) {
     socklen_t client_len = sizeof(client_addr);
     int client_fd = ::accept(s.sock_fd, reinterpret_cast<sockaddr*>(&client_addr), &client_len);
     if (client_fd == -1) {
@@ -141,10 +165,10 @@ bool srv::accept(Server& s, ::sockaddr_storage& client_addr) {
         std::println(stderr, "connection failed: {} (errno={})",
                      std::strerror(error),
                      error);
-        return false;
+        return -1;
     }
     util::devprint("Connection accepted. client_fd={}", client_fd);
-    return true;
+    return client_fd;
 }
 
 char* srv::parse(char line[], const char symbol[]) {
@@ -185,7 +209,7 @@ namespace srv {
 void sigchld_handler(int s) {
     (void)s;
     int saved_errno = errno;
-    while(waitpid(-1, NULL, WNOHANG) > 0);
+    while(::waitpid(-1, NULL, WNOHANG) > 0);
     errno = saved_errno;
 }
 

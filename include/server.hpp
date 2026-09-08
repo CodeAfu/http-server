@@ -35,7 +35,7 @@ void run(Server& s);
 bool bind(Server& s);
 bool listen(Server& s);
 bool connect(int client_fd, const ::addrinfo *srv_addr);
-bool accept(Server& s, ::sockaddr_storage& client_addr);
+int accept(Server& s, ::sockaddr_storage& client_addr);
 void* get_in_addr(::sockaddr *sa);
 char* parse(char line[], const char symbol[]);
 
