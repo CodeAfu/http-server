@@ -52,6 +52,25 @@ void srv::run(Server& srv) {
                     s,
                     sizeof(s));
         std::println("server: received connection from {}", s);
+
+        const char* msg = "Connected to genzoku's server!\r\n\n";
+        pid_t f = fork();
+        if (f == -1) {
+            srv.error_no = errno;
+            srv.error = std::strerror(srv.error_no);
+            std::println(stderr, "error occured while forking: {} (errno={})",
+                         srv.error,
+                         srv.error_no);
+            close(srv.sock_fd);
+            exit(0);
+        } else if (f == 0) {
+            close(srv.sock_fd);
+            http::send_msg(client_fd, msg, 0);
+            close(client_fd);
+            _exit(0);
+        } else {
+            close(client_fd);
+        }
     }
 
     std::println("Closing in 3 seconds...");

@@ -55,7 +55,7 @@ void http::print_addr_info(const ::addrinfo &addr_info) {
         addr_info.ai_addrlen);
 }
 
-bool send_msg(int sock_fd, const std::string& msg, int flags = 0) {
+bool http::send_msg(int sock_fd, const std::string& msg, int flags = 0) {
     std::size_t total = 0;
     while (total < msg.size()) {
         ssize_t sent = ::send(
@@ -81,7 +81,7 @@ bool send_msg(int sock_fd, const std::string& msg, int flags = 0) {
     return true;
 }
 
-const std::string& recv_msg(int sock_fd, std::string& msg, int flags = 0) {
+const std::string& http::recv_msg(int sock_fd, std::string& msg, int flags = 0) {
     ssize_t received = ::recv(sock_fd, msg.data(), msg.size(), flags);
     if (received <= 0)
         msg.clear();
