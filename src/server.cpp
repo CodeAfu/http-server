@@ -71,9 +71,6 @@ void srv::run(Server& srv) {
             close(client_fd);
         }
     }
-
-    std::println("Closing in 3 seconds...");
-    ::sleep(3); // POSIX
 }
 
 srv::Server srv::init() {
