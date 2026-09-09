@@ -38,10 +38,9 @@ void srv::run(Server& srv) {
     }
 
     // temporary printing
-    std::println("Waiting for connections");
+    util::devprint("Waiting for connections");
      
     while (true) {
-        util::devprint("poll");
         socklen_t sin_size = sizeof(client_addr);
         int client_fd = srv::accept(srv, client_addr);
         if (client_fd == -1) 
@@ -62,7 +61,7 @@ void srv::run(Server& srv) {
                          srv.error,
                          srv.error_no);
             close(srv.sock_fd);
-            exit(0);
+            _exit(0);
         } else if (f == 0) {
             close(srv.sock_fd);
             http::send_msg(client_fd, msg, 0);
