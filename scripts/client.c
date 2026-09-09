@@ -3,7 +3,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <netdb.h>
-#include <netinet/in.h>
 #include <unistd.h>
 
 #define PORT "8096"

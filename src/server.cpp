@@ -33,12 +33,15 @@ void srv::run(Server& srv) {
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = SA_RESTART;
     if (sigaction(SIGCHLD, &sa, nullptr) == -1) {
-        std::println(stderr, "sigaction");
+        int error = errno;
+        std::println(stderr, "sigaction failed: {} (errno={})",
+                     std::strerror(error),
+                     error);
         exit(1);
     }
 
     // temporary printing
-    util::devprint("Waiting for connections");
+    util::devprint("server: waiting for connections");
      
     while (true) {
         socklen_t sin_size = sizeof(client_addr);
