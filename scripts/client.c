@@ -69,7 +69,10 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
 
-    printf("client: received message=%s\n", buf);
+    printf("client: received message:\n");
+    printf("-------------------------\n");
+    printf("%s\n", buf);
+    printf("-------------------------\n");
 
     close(sockfd);
     return 0;

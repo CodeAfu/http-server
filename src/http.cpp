@@ -58,23 +58,19 @@ void http::print_addr_info(const ::addrinfo &addr_info) {
 bool http::send_msg(int sock_fd, const std::string& msg, int flags = 0) {
     std::size_t total = 0;
     while (total < msg.size()) {
-        ssize_t sent = ::send(
-            sock_fd,
-            msg.data() + total,
-            msg.size() - total,
-            flags
-        );
+        ssize_t sent = ::send(sock_fd, 
+                              msg.data() + total,
+                              msg.size() - total,
+                              flags);
         
         if (sent == -1) {
-            if (errno == EINTR) {
+            if (errno == EINTR)
                 continue;
-            }
             return false;
         }
 
-        if (sent == 0) {
+        if (sent == 0)
             return false;
-        }
 
         total += static_cast<std::size_t>(sent);
     }
