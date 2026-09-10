@@ -99,7 +99,6 @@ void srv::run(Server& srv) {
 }
 
 srv::Server srv::init() {
-    // throw server_error("test");
     Server srv{};
     addrinfo hints = addrinfo{
         .ai_flags = AI_PASSIVE,     // fill the ip for me
@@ -113,7 +112,6 @@ srv::Server srv::init() {
         srv.pfds[i].events = POLLIN;
         srv.pfds[i].revents = 0;
     }
-
 
     srv.ai =
         http::get_addr_info(nullptr, std::to_string(Server::PORT).c_str(), hints);
@@ -160,6 +158,9 @@ srv::Server srv::init() {
     return srv;
 }
 
+void srv::add_to_pfds(srv::Server &s, int new_pfd) {
+    throw std::runtime_error("not implemented");
+}
 
 bool srv::bind(Server& s) {
     if (s.ai == nullptr) {

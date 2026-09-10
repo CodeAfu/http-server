@@ -39,6 +39,7 @@ struct Server {
 // };
 
 Server init();
+void add_to_pfds(Server &s, int new_pfd);
 void run(Server& s);
 bool bind(Server& s);
 bool listen(Server& s);
