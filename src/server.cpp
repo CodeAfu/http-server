@@ -34,7 +34,7 @@ void srv::run(Server& srv) {
     sa.sa_flags = SA_RESTART;
     if (sigaction(SIGCHLD, &sa, nullptr) == -1) {
         int error = errno;
-        std::println(stderr, "sigaction failed: {} (errno={})",
+        std::println(stderr, "server: sigaction failed: {} (errno={})",
                      std::strerror(error),
                      error);
         exit(1);
@@ -60,7 +60,7 @@ void srv::run(Server& srv) {
         if (f == -1) {
             srv.error_no = errno;
             srv.error = std::strerror(srv.error_no);
-            std::println(stderr, "error occured while forking: {} (errno={})",
+            std::println(stderr, "server: error occured while forking: {} (errno={})",
                          srv.error,
                          srv.error_no);
             close(srv.sock_fd);
@@ -88,7 +88,6 @@ srv::Server srv::init() {
     server.addr_info =
         http::get_addr_info(nullptr, std::to_string(PORT).c_str(), hints);
 
-    util::devprint("SERVER:");
     for (addrinfo *p = server.addr_info; p != nullptr; p = p->ai_next)
         http::print_addr_info(*p);
 
@@ -103,14 +102,14 @@ srv::Server srv::init() {
                      server.error_no);
         return server;
     }
-    util::devprint("File descriptor created. srv_fd={}", server.sock_fd);
+    util::devprint("server: file descriptor created. srv_fd={}", server.sock_fd);
 
     int yes = 1;
     int sock_opt = ::setsockopt(server.sock_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)); // fix "Address already in use" error
     if (sock_opt == -1) {
         server.error_no = errno;
         server.error = std::strerror(server.error_no);
-        std::println(stderr, "setsockopt failed: {} (errno={})",
+        std::println(stderr, "server: setsockopt failed: {} (errno={})",
                      server.error,
                      server.error_no);
         return server;
@@ -122,7 +121,7 @@ srv::Server srv::init() {
     if (!srv::listen(server))
         return server;
 
-    std::println("Listening on port {}", PORT);
+    std::println("server: listening on port {}", PORT);
 
     server.success = true;
     return server;
@@ -145,7 +144,7 @@ bool srv::bind(Server& s) {
                      s.error_no);
         return false;
     }
-    util::devprint("Bind success. srv_fd={}", s.sock_fd);
+    util::devprint("server: bind success. srv_fd={}", s.sock_fd);
     return true; 
 }
 
@@ -157,7 +156,7 @@ bool srv::listen(Server& s) {
                      std::strerror(error), error);
         return false;
     }
-    util::devprint("Listen success. srv_fd={}", s.sock_fd);
+    util::devprint("server: listen success. srv_fd={}", s.sock_fd);
     return true;
 }
 
@@ -170,7 +169,7 @@ bool srv::connect(int client_fd, const ::addrinfo *srv_addr) {
                      error);
         return false;
     }
-    util::devprint("Connection success. client_fd={}", client_fd);
+    util::devprint("server: connection success. client_fd={}", client_fd);
     return true;
 }
 
@@ -185,7 +184,7 @@ int srv::accept(Server& s, ::sockaddr_storage& client_addr) {
                      error);
         return -1;
     }
-    util::devprint("Connection accepted. client_fd={}", client_fd);
+    util::devprint("server: connection accepted. client_fd={}", client_fd);
     return client_fd;
 }
 
