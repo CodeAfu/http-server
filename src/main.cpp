@@ -1,12 +1,11 @@
-// #include "util.hpp"
+#include "http.hpp"
+#include "server.hpp"
+#include "util.hpp"
+
 #include <arpa/inet.h>
 #include <cstring>
 #include <netdb.h>
 #include <print>
-
-#include "http.hpp"
-#include "server.hpp"
-#include "util.hpp"
 
 void sample();
 

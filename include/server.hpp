@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdexcept>
+#include <sys/poll.h>
 #include <sys/socket.h>
 
 struct addrinfo;
@@ -17,7 +18,8 @@ public:
 struct Server {
     int sock_fd = -1;
     ::addrinfo* addr_info = nullptr;
-    int n_conn = 10; // <sys/socket.h> SOMAXCONN = 4096
+    int max_conn = 10; // <sys/socket.h> SOMAXCONN = 4096
+    pollfd pfds[12];
     bool success = false;
     std::string error;
     int error_no = 0;

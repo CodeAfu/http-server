@@ -1,3 +1,7 @@
+#include "http.hpp"
+#include "util.hpp"
+#include "server.hpp"
+
 #include <arpa/inet.h>
 #include <cstring>
 #include <netdb.h>
@@ -7,13 +11,8 @@
 #include <unistd.h>
 #include <sys/wait.h>
 
-#include "http.hpp"
-#include "util.hpp"
-#include "server.hpp"
-
-#define SRVMAXCONN = 10 // aim for 4096 later
-
 constexpr uint16_t PORT = 8096;
+constexpr uint8_t MAX_PFDS = 12;
 
 // private
 namespace srv {
@@ -45,7 +44,21 @@ void srv::run(Server& srv) {
     // temporary printing
     util::devprint("server: waiting for connections");
      
+
     while (true) {
+        int num_events = ::poll(srv.pfds, 10, 4000);
+        if (num_events == 0) {
+            util::devprint("server: poll timed out");
+            continue;
+        }
+
+        if (num_events == -1)
+            continue;
+
+        // If not poll, ignore
+        if (!(srv.pfds[0].revents & POLLIN))
+            continue;
+
         int client_fd = srv::accept(srv, client_addr);
         if (client_fd == -1) 
             continue;
@@ -56,7 +69,7 @@ void srv::run(Server& srv) {
                     sizeof(s));
         std::println("server: received connection from {}", s);
 
-        const std::string msg = "Connected to genzoku's server!\r\n";
+        const std::string msg = "Connected to genzoku's server!";
         const std::string payload = std::format(
             "HTTP/1.1 200 OK\r\n"
             "Content-Type: text/plain\r\n"
@@ -88,53 +101,62 @@ void srv::run(Server& srv) {
 
 srv::Server srv::init() {
     // throw server_error("test");
-    Server server{};
+    Server srv{};
     addrinfo hints = addrinfo{
         .ai_flags = AI_PASSIVE,     // fill the ip for me
         .ai_family = AF_INET,       // IPv4
         .ai_socktype = SOCK_STREAM, // TCP stream sockets
     };
 
-    server.addr_info =
+    for (uint8_t i = 0; i < MAX_PFDS; i++) {
+        srv.pfds[i].fd = -1;
+        srv.pfds[i].events = POLLIN;
+        srv.pfds[i].revents = 0;
+    }
+
+    // ipv4 listener pollfd
+    srv.pfds[0].fd = srv.sock_fd;
+
+    srv.addr_info =
         http::get_addr_info(nullptr, std::to_string(PORT).c_str(), hints);
 
-    for (addrinfo *p = server.addr_info; p != nullptr; p = p->ai_next)
+    for (addrinfo *p = srv.addr_info; p != nullptr; p = p->ai_next)
         http::print_addr_info(*p);
 
     // use try_srv_func
-    server.sock_fd = ::socket(server.addr_info->ai_family, server.addr_info->ai_socktype,
-                          server.addr_info->ai_protocol);
-    if (server.sock_fd == -1) {
-        server.error_no = errno;
-        server.error = std::strerror(server.error_no);
+    srv.sock_fd = ::socket(srv.addr_info->ai_family, srv.addr_info->ai_socktype,
+                          srv.addr_info->ai_protocol);
+    if (srv.sock_fd == -1) {
+        srv.error_no = errno;
+        srv.error = std::strerror(srv.error_no);
         std::println(stderr, "socket failed: {} (errno={})",
-                     server.error,
-                     server.error_no);
-        return server;
+                     srv.error,
+                     srv.error_no);
+        return srv;
     }
-    util::devprint("server: file descriptor created. srv_fd={}", server.sock_fd);
+    util::devprint("server: file descriptor created. srv_fd={}", srv.sock_fd);
 
     int yes = 1;
-    int sock_opt = ::setsockopt(server.sock_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)); // fix "Address already in use" error
+    int sock_opt = ::setsockopt(srv.sock_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)); // fix "Address already in use" error
     if (sock_opt == -1) {
-        server.error_no = errno;
-        server.error = std::strerror(server.error_no);
+        srv.error_no = errno;
+        srv.error = std::strerror(srv.error_no);
         std::println(stderr, "server: setsockopt failed: {} (errno={})",
-                     server.error,
-                     server.error_no);
-        return server;
+                     srv.error,
+                     srv.error_no);
+        return srv;
     }
 
-    if (!srv::bind(server))
-        return server;
+    if (!srv::bind(srv))
+        return srv;
 
-    if (!srv::listen(server))
-        return server;
+    if (!srv::listen(srv))
+        return srv;
 
     std::println("server: listening on port {}", PORT);
 
-    server.success = true;
-    return server;
+    srv.success = true;
+    return srv;
 }
 
 
@@ -159,7 +181,7 @@ bool srv::bind(Server& s) {
 }
 
 bool srv::listen(Server& s) {
-    int res = ::listen(s.sock_fd, s.n_conn);
+    int res = ::listen(s.sock_fd, s.max_conn);
     if (res == -1) { 
         int error = errno;
         std::println(stderr, "listen failed: {} (errno={})",

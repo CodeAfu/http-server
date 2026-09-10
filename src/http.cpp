@@ -1,10 +1,10 @@
+#include "http.hpp"
+#include "util.hpp"
+
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <print>
-
-#include "http.hpp"
-#include "util.hpp"
 
 addrinfo* http::get_addr_info(const char *host, const char* port, const ::addrinfo &hints) {
     addrinfo *results = nullptr;
