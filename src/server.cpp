@@ -17,7 +17,7 @@ constexpr uint8_t MAX_PFDS = 12;
 // private
 namespace srv {
 template <typename F>
-bool try_srv_func(
+bool try_srv_func( // TODO: delete
     F&& func,
     std::source_location location = std::source_location::current()
 );
@@ -46,7 +46,9 @@ void srv::run(Server& srv) {
      
 
     while (true) {
-        int num_events = ::poll(srv.pfds, 10, 4000);
+        int num_events = 
+            ::poll(srv.pfds, Server::POLLFD_COUNT, 4000);
+
         if (num_events == 0) {
             util::devprint("server: poll timed out");
             continue;
@@ -108,7 +110,8 @@ srv::Server srv::init() {
         .ai_socktype = SOCK_STREAM, // TCP stream sockets
     };
 
-    for (uint8_t i = 0; i < MAX_PFDS; i++) {
+    // initailize poll file descriptors
+    for (std::size_t i = 0; i < Server::POLLFD_COUNT; i++) {
         srv.pfds[i].fd = -1;
         srv.pfds[i].events = POLLIN;
         srv.pfds[i].revents = 0;
@@ -117,15 +120,14 @@ srv::Server srv::init() {
     // ipv4 listener pollfd
     srv.pfds[0].fd = srv.sock_fd;
 
-    srv.addr_info =
+    srv.ai =
         http::get_addr_info(nullptr, std::to_string(PORT).c_str(), hints);
 
-    for (addrinfo *p = srv.addr_info; p != nullptr; p = p->ai_next)
+    for (addrinfo *p = srv.ai; p != nullptr; p = p->ai_next)
         http::print_addr_info(*p);
 
-    // use try_srv_func
-    srv.sock_fd = ::socket(srv.addr_info->ai_family, srv.addr_info->ai_socktype,
-                          srv.addr_info->ai_protocol);
+    srv.sock_fd = ::socket(srv.ai->ai_family, srv.ai->ai_socktype,
+                          srv.ai->ai_protocol);
     if (srv.sock_fd == -1) {
         srv.error_no = errno;
         srv.error = std::strerror(srv.error_no);
@@ -161,12 +163,12 @@ srv::Server srv::init() {
 
 
 bool srv::bind(Server& s) {
-    if (s.addr_info == nullptr) {
+    if (s.ai == nullptr) {
         s.error = "No address info avaiable";
         return false;
     }
 
-    int res = ::bind(s.sock_fd, s.addr_info->ai_addr, s.addr_info->ai_addrlen);
+    int res = ::bind(s.sock_fd, s.ai->ai_addr, s.ai->ai_addrlen);
 
     if (res == -1) {
         s.error_no = errno; 
@@ -181,7 +183,7 @@ bool srv::bind(Server& s) {
 }
 
 bool srv::listen(Server& s) {
-    int res = ::listen(s.sock_fd, s.max_conn);
+    int res = ::listen(s.sock_fd, Server::BACKLOG);
     if (res == -1) { 
         int error = errno;
         std::println(stderr, "listen failed: {} (errno={})",
@@ -249,8 +251,8 @@ srv::Server::~Server() {
     util::devprint("Server destructor called");
     if (sock_fd != -1)
         ::close(sock_fd);
-    if (addr_info != nullptr) 
-        freeaddrinfo(addr_info); // free the linked list
+    if (ai != nullptr) 
+        freeaddrinfo(ai); // free the linked list
 }
 
 // private
@@ -263,7 +265,7 @@ void sigchld_handler(int s) {
 }
 
 template <typename F>
-bool try_srv_func(
+bool try_srv_func( // TODO: delete
     F&& func,
     std::source_location location
 ) {

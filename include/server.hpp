@@ -16,10 +16,14 @@ public:
 };
 
 struct Server {
+    static constexpr std::size_t MAX_CLIENTS = 10; // <sys/socket.h> SOMAXCONN = 4096
+    static constexpr std::size_t POLLFD_COUNT = MAX_CLIENTS + 1;
+    static constexpr int BACKLOG = 10;
+
+    ::addrinfo* ai = nullptr;
     int sock_fd = -1;
-    ::addrinfo* addr_info = nullptr;
-    int max_conn = 10; // <sys/socket.h> SOMAXCONN = 4096
-    pollfd pfds[12];
+    pollfd pfds[MAX_CLIENTS + 2]{};
+
     bool success = false;
     std::string error;
     int error_no = 0;
