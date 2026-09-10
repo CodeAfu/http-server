@@ -16,8 +16,10 @@ public:
 };
 
 struct Server {
+    static constexpr std::size_t PORT = 8096;
     static constexpr std::size_t MAX_CLIENTS = 10; // <sys/socket.h> SOMAXCONN = 4096
     static constexpr std::size_t POLLFD_COUNT = MAX_CLIENTS + 1;
+    static constexpr std::size_t POLLFD_TIMEOUT = 4000;
     static constexpr int BACKLOG = 10;
 
     ::addrinfo* ai = nullptr;

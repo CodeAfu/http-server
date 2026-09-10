@@ -11,9 +11,6 @@
 #include <unistd.h>
 #include <sys/wait.h>
 
-constexpr uint16_t PORT = 8096;
-constexpr uint8_t MAX_PFDS = 12;
-
 // private
 namespace srv {
 template <typename F>
@@ -47,10 +44,10 @@ void srv::run(Server& srv) {
 
     while (true) {
         int num_events = 
-            ::poll(srv.pfds, Server::POLLFD_COUNT, 4000);
+            ::poll(srv.pfds, Server::POLLFD_COUNT, Server::POLLFD_TIMEOUT);
 
         if (num_events == 0) {
-            util::devprint("server: poll timed out");
+            util::devprint("server: poll timed out ({}ms)", Server::POLLFD_TIMEOUT);
             continue;
         }
 
@@ -117,11 +114,9 @@ srv::Server srv::init() {
         srv.pfds[i].revents = 0;
     }
 
-    // ipv4 listener pollfd
-    srv.pfds[0].fd = srv.sock_fd;
 
     srv.ai =
-        http::get_addr_info(nullptr, std::to_string(PORT).c_str(), hints);
+        http::get_addr_info(nullptr, std::to_string(Server::PORT).c_str(), hints);
 
     for (addrinfo *p = srv.ai; p != nullptr; p = p->ai_next)
         http::print_addr_info(*p);
@@ -137,6 +132,10 @@ srv::Server srv::init() {
         return srv;
     }
     util::devprint("server: file descriptor created. srv_fd={}", srv.sock_fd);
+
+    // ipv4 listener pollfd
+    srv.pfds[0].fd = srv.sock_fd;
+    util::devprint("server: poll_fd created. poll_fd={}", srv.pfds[0].fd);
 
     int yes = 1;
     int sock_opt = ::setsockopt(srv.sock_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)); // fix "Address already in use" error
@@ -155,7 +154,7 @@ srv::Server srv::init() {
     if (!srv::listen(srv))
         return srv;
 
-    std::println("server: listening on port {}", PORT);
+    std::println("server: listening on port {}", Server::PORT);
 
     srv.success = true;
     return srv;
