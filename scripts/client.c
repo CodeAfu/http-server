@@ -4,6 +4,7 @@
 #include <cstring>
 #include <netdb.h>
 #include <unistd.h>
+#include <poll.h>
 
 #define PORT "8096"
 #define MAXDATASIZE 1000
@@ -12,11 +13,11 @@ void* get_in_addr(struct sockaddr *sa);
 
 int main(int argc, char* argv[]) {
     int sockfd;
-    int numbytes;
+    int numbytes_recv;
     struct addrinfo hints;
     struct addrinfo *srv_info, *p;
-    char buf[MAXDATASIZE];
     char s[INET6_ADDRSTRLEN];
+    char buf[MAXDATASIZE];
     int rv;
 
     memset(&hints, 0, sizeof(hints));
@@ -63,7 +64,7 @@ int main(int argc, char* argv[]) {
 
     freeaddrinfo(srv_info);
 
-    if ((numbytes = recv(sockfd, buf, MAXDATASIZE - 1, 0)) == -1) {
+    if ((numbytes_recv = recv(sockfd, buf, MAXDATASIZE - 1, 0)) == -1) {
         perror("recv");
         exit(1);
     }

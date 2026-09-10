@@ -11,6 +11,8 @@
 #include "util.hpp"
 #include "server.hpp"
 
+#define SRVMAXCONN = 10 // aim for 4096 later
+
 constexpr uint16_t PORT = 8096;
 
 // private
@@ -29,7 +31,7 @@ void srv::run(Server& srv) {
 
     // cleanup zombie processes
     struct sigaction sa{};
-    sa.sa_handler = sigchld_handler;
+    sa.sa_handler = srv::sigchld_handler;
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = SA_RESTART;
     if (sigaction(SIGCHLD, &sa, nullptr) == -1) {
@@ -44,7 +46,6 @@ void srv::run(Server& srv) {
     util::devprint("server: waiting for connections");
      
     while (true) {
-        socklen_t sin_size = sizeof(client_addr);
         int client_fd = srv::accept(srv, client_addr);
         if (client_fd == -1) 
             continue;
@@ -55,7 +56,16 @@ void srv::run(Server& srv) {
                     sizeof(s));
         std::println("server: received connection from {}", s);
 
-        const char* msg = "Connected to genzoku's server!\r\n\n";
+        const std::string msg = "Connected to genzoku's server!\r\n";
+        const std::string payload = std::format(
+            "HTTP/1.1 200 OK\r\n"
+            "Content-Type: text/plain\r\n"
+            "Content-Length: {}\r\n"
+            "Connection: close\r\n"
+            "\r\n{}",
+            msg.size(), msg
+        );
+
         pid_t f = fork();
         if (f == -1) {
             srv.error_no = errno;
@@ -67,7 +77,7 @@ void srv::run(Server& srv) {
             _exit(0);
         } else if (f == 0) {
             close(srv.sock_fd);
-            http::send_msg(client_fd, msg, 0);
+            http::send_msg(client_fd, payload, 0);
             close(client_fd);
             _exit(0);
         } else {

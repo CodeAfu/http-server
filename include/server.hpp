@@ -25,10 +25,10 @@ struct Server {
     ~Server();
 };
 
-struct ClientConnection {
-    int fd;
-    sockaddr_storage address;
-};
+// struct ClientConnection {
+//     int fd;
+//     sockaddr_storage address;
+// };
 
 Server init();
 void run(Server& s);
