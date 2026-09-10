@@ -31,7 +31,6 @@ int main(int argc, char *argv[]) {
         if (!s.success) {
             return 1;
         }
-        util::devprint("server: file descriptor={}", s.sock_fd);
         srv::run(s);
         return 0;
     });

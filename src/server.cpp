@@ -131,11 +131,11 @@ srv::Server srv::init() {
                      srv.error_no);
         return srv;
     }
-    util::devprint("server: file descriptor created. srv_fd={}", srv.sock_fd);
+    util::devprint("server: server file descriptor created. srv_fd={}", srv.sock_fd);
 
     // ipv4 listener pollfd
     srv.pfds[0].fd = srv.sock_fd;
-    util::devprint("server: poll_fd created. poll_fd={}", srv.pfds[0].fd);
+    util::devprint("server: poll file descriptor created. poll_fd={}", srv.pfds[0].fd);
 
     int yes = 1;
     int sock_opt = ::setsockopt(srv.sock_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)); // fix "Address already in use" error

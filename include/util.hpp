@@ -13,7 +13,6 @@ struct sockaddr_in;
 struct sockaddr_in6;
 
 namespace util {
-
 template <std::invocable F>
 int tryCatch(F&& func) {
     try {
@@ -44,5 +43,5 @@ inline void devprint(std::format_string<Args...> fmt, Args&&... values) {
 
 void get_ipv4(sockaddr_in &sa, const char* addr, char *out, size_t out_len);
 void get_ipv6(sockaddr_in6 &sa6, const char* addr, char *out, size_t out_len);
-
+const char* inet_ntop(void *sa, const char* addr, char *out, size_t out_len);
 }; // namespace util
