@@ -44,7 +44,7 @@ void srv::run(Server& srv) {
 
     while (true) {
         int num_events = 
-            ::poll(srv.pfds, Server::POLLFD_COUNT, Server::POLLFD_TIMEOUT);
+            ::poll(srv.pfds, srv.pfds_size, Server::POLLFD_TIMEOUT);
 
         if (num_events == 0) {
             util::devprint("server: poll timed out ({}ms)", Server::POLLFD_TIMEOUT);
@@ -107,7 +107,7 @@ srv::Server srv::init() {
     };
 
     // initailize poll file descriptors
-    for (std::size_t i = 0; i < Server::POLLFD_COUNT; i++) {
+    for (std::size_t i = 0; i < srv.pfds_size; i++) {
         srv.pfds[i].fd = -1;
         srv.pfds[i].events = POLLIN;
         srv.pfds[i].revents = 0;
@@ -158,9 +158,12 @@ srv::Server srv::init() {
     return srv;
 }
 
-void srv::add_to_pfds(srv::Server &s, int new_pfd) {
-    throw std::runtime_error("not implemented");
-}
+// void srv::add_to_pfds(srv::Server &srv, int new_pfd) {
+//     if (srv.pfds_count >= std::size(srv.pfds)) {
+//         srv.pfds_size *= 2;
+//         srv.pfds = realloc(srv.pfds, srv.pfds_size);
+//     }
+// }
 
 bool srv::bind(Server& s) {
     if (s.ai == nullptr) {

@@ -63,17 +63,18 @@ bool http::send_msg(int sock_fd, const std::string& msg, int flags = 0) {
                               msg.size() - total,
                               flags);
         
-        if (sent == -1) {
-            if (errno == EINTR)
-                continue;
-            return false;
+        if (sent > 0) {
+            total += static_cast<std::size_t>(sent);
+            continue;
         }
 
-        if (sent == 0)
-            return false;
+        if (sent == -1 && errno == EINTR) {
+            continue;
+        }
 
-        total += static_cast<std::size_t>(sent);
+        return false;
     }
+
     return true;
 }
 
