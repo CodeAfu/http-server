@@ -6,7 +6,13 @@
 #include <netinet/in.h>
 #include <print>
 
-addrinfo* http::get_addr_info(const char *host, const char* port, const ::addrinfo &hints) {
+#define pack754_32(f) (pack754(f), 32, 8)
+#define pack754_64(f) (pack754(f), 64, 11)
+#define unpack754_32(i) (unpack754((i), 32, 8))
+#define unpack754_64(i) (unpack754((i), 64, 11))
+
+addrinfo* http::get_addr_info(const char *host, const char* port, const ::addrinfo &hints)
+{
     addrinfo *results = nullptr;
     int error = getaddrinfo(host, port, &hints, &results);
     if (error != 0) {
@@ -16,7 +22,8 @@ addrinfo* http::get_addr_info(const char *host, const char* port, const ::addrin
     return results;
 }
 
-void* http::get_in_addr(::sockaddr *sa) {
+void* http::get_in_addr(::sockaddr *sa)
+{
     if (sa->sa_family == AF_INET) {
         return &(((sockaddr_in *)sa)->sin_addr);
     } else if (sa->sa_family == AF_INET6) {
@@ -27,7 +34,8 @@ void* http::get_in_addr(::sockaddr *sa) {
 }
 
 
-void http::print_addr_info(const ::addrinfo &addr_info) {
+void http::print_addr_info(const ::addrinfo &addr_info)
+{
     char host[NI_MAXHOST]{};
     char service[NI_MAXSERV]{};
 
@@ -55,7 +63,8 @@ void http::print_addr_info(const ::addrinfo &addr_info) {
         addr_info.ai_addrlen);
 }
 
-bool http::send_msg(int sock_fd, const std::string& msg, int flags = 0) {
+bool http::send_msg(int sock_fd, const std::string& msg, int flags = 0)
+{
     std::size_t total = 0;
     while (total < msg.size()) {
         ssize_t sent = ::send(sock_fd, 
@@ -78,11 +87,104 @@ bool http::send_msg(int sock_fd, const std::string& msg, int flags = 0) {
     return true;
 }
 
-const std::string& http::recv_msg(int sock_fd, std::string& msg, int flags = 0) {
+const std::string& http::recv_msg(int sock_fd, std::string& msg, int flags = 0)
+{
     ssize_t received = ::recv(sock_fd, msg.data(), msg.size(), flags);
     if (received <= 0)
         msg.clear();
 
     msg.resize(received);
     return msg;
+}
+
+uint32_t http::htonf(float f)
+{
+    uint32_t p;
+    uint32_t sign;
+
+    if (f < 0) {
+        sign = 1;
+        f = -f;
+    } else {
+        sign = 0;
+    }
+
+    /// some dirty stuff wao
+    // whole part and sign
+    p = ((((uint32_t)f)&0x7fff)<<16) | (sign<<31);
+
+    // fraction
+    p |= (uint32_t)(((f - (int)f) * 65536.0f))&0xffff; // 65536 = 2^16
+
+    return p;
+}
+
+float http::ntohf(uint32_t p)
+{
+    float f = ((p >> 16)&0x7fff);
+    f += (p&0xffff) / 65536.0f;
+
+    if (((p >> 31)&0x1) == 0x1)
+        f = -f;
+
+    return f;
+}
+
+uint64_t pack754(long double f, unsigned bits, unsigned expbits)
+{
+    long double fnorm;
+    int shift;
+    long long sign, exp, significand;
+
+    // -1 for sign bit
+    unsigned significandbits = bits - expbits - 1;
+
+    if (f == 0.0) return 0; // get this special case out of the way
+
+    // check sign and begin normalization
+    if (f < 0) { sign = 1; fnorm = -f; }
+    else { sign = 0; fnorm = f; }
+
+    // get the normalized form of f and track the exponent
+    shift = 0;
+    while(fnorm >= 2.0) { fnorm /= 2.0; shift++; }
+    while(fnorm < 1.0) { fnorm *= 2.0; shift--; }
+    fnorm = fnorm - 1.0;
+
+    // calculate the binary form (non-float) of the significand data
+    significand = fnorm * ((1LL<<significandbits) + 0.5f);
+
+    // get the biased exponent
+    exp = shift + ((1<<(expbits-1)) - 1); // shift + bias
+
+    // return the final answer
+    return (sign<<(bits-1)) | (exp<<(bits-expbits-1)) | significand;
+}
+
+long double unpack754(uint64_t i, unsigned bits, unsigned expbits)
+{
+    long double result;
+    long long shift;
+    unsigned bias;
+
+    // -1 for sign bit
+    unsigned significandbits = bits - expbits - 1;
+
+    if (i == 0) return 0.0;
+
+    // pull the significand
+    result = (i&((1LL<<significandbits)-1)); // mask
+    result /= (1LL<<significandbits); // convert back to float
+    result += 1.0f; // add the one back on
+
+    // deal with the exponent
+    bias = (1<<(expbits-1)) - 1;
+    shift = ((i>>significandbits)&((1LL<<expbits)-1)) - bias;
+    while(shift > 0) { result *= 2.0; shift--; }
+    while(shift < 0) { result /= 2.0; shift++; }
+
+    // sign it
+    result *= (i>>(bits-1))&1? -1.0: 1.0;
+
+    return result;
 }

@@ -21,7 +21,8 @@ bool try_srv_func( // TODO: delete
 void sigchld_handler(int s);
 } // namespace srv
 
-void srv::run(Server& srv) {
+void srv::run(Server& srv)
+{
     sockaddr_storage client_addr;
     char s[INET6_ADDRSTRLEN];
 
@@ -38,25 +39,23 @@ void srv::run(Server& srv) {
         exit(1);
     }
 
-    // temporary printing
     util::devprint("server: waiting for connections");
-     
 
     while (true) {
-        int num_events = 
-            ::poll(srv.pfds, srv.pfds_size, Server::POLLFD_TIMEOUT);
-
-        if (num_events == 0) {
-            util::devprint("server: poll timed out ({}ms)", Server::POLLFD_TIMEOUT);
-            continue;
-        }
-
-        if (num_events == -1)
-            continue;
-
-        // If not poll, ignore
-        if (!(srv.pfds[0].revents & POLLIN))
-            continue;
+        // int num_events = 
+        //     ::poll(srv.pfds, srv.pfds_size, Server::POLLFD_TIMEOUT);
+        //
+        // if (num_events == 0) {
+        //     util::devprint("server: poll timed out ({}ms)", Server::POLLFD_TIMEOUT);
+        //     continue;
+        // }
+        //
+        // if (num_events == -1)
+        //     continue;
+        //
+        // // If not poll, ignore
+        // if (!(srv.pfds[0].revents & POLLIN))
+        //     continue;
 
         int client_fd = srv::accept(srv, client_addr);
         if (client_fd == -1) 
@@ -98,7 +97,8 @@ void srv::run(Server& srv) {
     }
 }
 
-srv::Server srv::init() {
+srv::Server srv::init()
+{
     Server srv{};
     addrinfo hints = addrinfo{
         .ai_flags = AI_PASSIVE,     // fill the ip for me
@@ -165,7 +165,8 @@ srv::Server srv::init() {
 //     }
 // }
 
-bool srv::bind(Server& s) {
+bool srv::bind(Server& s)
+{
     if (s.ai == nullptr) {
         s.error = "No address info avaiable";
         return false;
@@ -185,7 +186,8 @@ bool srv::bind(Server& s) {
     return true; 
 }
 
-bool srv::listen(Server& s) {
+bool srv::listen(Server& s)
+{
     int res = ::listen(s.sock_fd, Server::BACKLOG);
     if (res == -1) { 
         int error = errno;
@@ -197,7 +199,8 @@ bool srv::listen(Server& s) {
     return true;
 }
 
-bool srv::connect(int client_fd, const ::addrinfo *srv_addr) {
+bool srv::connect(int client_fd, const ::addrinfo *srv_addr)
+{
     int res = ::connect(client_fd, srv_addr->ai_addr, srv_addr->ai_addrlen);
     if (res == -1) {
         int error = errno;
@@ -210,7 +213,8 @@ bool srv::connect(int client_fd, const ::addrinfo *srv_addr) {
     return true;
 }
 
-int srv::accept(Server& s, ::sockaddr_storage& client_addr) {
+int srv::accept(Server& s, ::sockaddr_storage& client_addr)
+{
     socklen_t client_len = sizeof(client_addr);
     int client_fd = ::accept(s.sock_fd, reinterpret_cast<sockaddr*>(&client_addr), &client_len);
     if (client_fd == -1) {
@@ -225,7 +229,8 @@ int srv::accept(Server& s, ::sockaddr_storage& client_addr) {
     return client_fd;
 }
 
-char* srv::parse(char line[], const char symbol[]) {
+char* srv::parse(char line[], const char symbol[])
+{
     char *copy = (char *)malloc(strlen(line) + 1);
     if (copy == NULL) 
         return NULL;
@@ -250,7 +255,8 @@ char* srv::parse(char line[], const char symbol[]) {
     return message;
 }
 
-srv::Server::~Server() {
+srv::Server::~Server()
+{
     util::devprint("Server destructor called");
     if (sock_fd != -1)
         ::close(sock_fd);
@@ -260,7 +266,8 @@ srv::Server::~Server() {
 
 // private
 namespace srv {
-void sigchld_handler(int s) {
+void sigchld_handler(int s)
+{
     (void)s;
     int saved_errno = errno;
     while(::waitpid(-1, NULL, WNOHANG) > 0);
@@ -271,7 +278,8 @@ template <typename F>
 bool try_srv_func( // TODO: delete
     F&& func,
     std::source_location location
-) {
+)
+{
     int result = func();
     if (result == -1) {
         int error = errno;
