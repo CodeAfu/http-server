@@ -1,7 +1,3 @@
-#include "http.hpp"
-#include "util.hpp"
-#include "server.hpp"
-
 #include <arpa/inet.h>
 #include <cstring>
 #include <netdb.h>
@@ -10,6 +6,11 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <sys/wait.h>
+
+#include "base.h"
+#include "http.hpp"
+#include "util.hpp"
+#include "server.hpp"
 
 // private
 namespace srv {
@@ -21,86 +22,10 @@ bool try_srv_func( // TODO: delete
 void sigchld_handler(int s);
 } // namespace srv
 
-void srv::run(Server& srv)
-{
-    sockaddr_storage client_addr;
-    char s[INET6_ADDRSTRLEN];
-
-    // cleanup zombie processes
-    struct sigaction sa{};
-    sa.sa_handler = srv::sigchld_handler;
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = SA_RESTART;
-    if (sigaction(SIGCHLD, &sa, nullptr) == -1) {
-        int error = errno;
-        std::println(stderr, "server: sigaction failed: {} (errno={})",
-                     std::strerror(error),
-                     error);
-        exit(1);
-    }
-
-    util::devprint("server: waiting for connections");
-
-    while (true) {
-        // int num_events = 
-        //     ::poll(srv.pfds, srv.pfds_size, Server::POLLFD_TIMEOUT);
-        //
-        // if (num_events == 0) {
-        //     util::devprint("server: poll timed out ({}ms)", Server::POLLFD_TIMEOUT);
-        //     continue;
-        // }
-        //
-        // if (num_events == -1)
-        //     continue;
-        //
-        // // If not poll, ignore
-        // if (!(srv.pfds[0].revents & POLLIN))
-        //     continue;
-
-        int client_fd = srv::accept(srv, client_addr);
-        if (client_fd == -1) 
-            continue;
-::
-        inet_ntop(client_addr.ss_family,
-                    http::get_in_addr((sockaddr *)&client_addr),
-                    s,
-                    sizeof(s));
-        std::println("server: received connection from {}", s);
-
-        const std::string msg = "Connected to genzoku's server!";
-        const std::string payload = std::format(
-            "HTTP/1.1 200 OK\r\n"
-            "Content-Type: text/plain\r\n"
-            "Content-Length: {}\r\n"
-            "Connection: close\r\n"
-            "\r\n{}",
-            msg.size(), msg
-        );
-
-        pid_t f = fork();
-        if (f == -1) {
-            srv.error_no = errno;
-            srv.error = std::strerror(srv.error_no);
-            std::println(stderr, "server: error occured while forking: {} (errno={})",
-                         srv.error,
-                         srv.error_no);
-            close(srv.sock_fd);
-            _exit(0);
-        } else if (f == 0) {
-            close(srv.sock_fd);
-            http::send_msg(client_fd, payload, 0);
-            close(client_fd);
-            _exit(0);
-        } else {
-            close(client_fd);
-        }
-    }
-}
-
 srv::Server srv::init()
 {
     Server srv{};
-    addrinfo hints = addrinfo{
+    AddressInfo hints = AddressInfo{
         .ai_flags = AI_PASSIVE,     // fill the ip for me
         .ai_family = AF_INET,       // IPv4
         .ai_socktype = SOCK_STREAM, // TCP stream sockets
@@ -113,15 +38,15 @@ srv::Server srv::init()
         srv.pfds[i].revents = 0;
     }
 
-    srv.ai =
+    srv.address_info =
         http::get_addr_info(nullptr, std::to_string(Server::PORT).c_str(), hints);
 
-    for (addrinfo *p = srv.ai; p != nullptr; p = p->ai_next)
+    for (AddressInfo *p = srv.address_info; p != nullptr; p = p->ai_next)
         http::print_addr_info(*p);
 
-    srv.sock_fd = ::socket(srv.ai->ai_family, srv.ai->ai_socktype,
-                          srv.ai->ai_protocol);
-    if (srv.sock_fd == -1) {
+    srv.socket_fd = ::socket(srv.address_info->ai_family, srv.address_info->ai_socktype,
+                          srv.address_info->ai_protocol);
+    if (srv.socket_fd == -1) {
         srv.error_no = errno;
         srv.error = std::strerror(srv.error_no);
         std::println(stderr, "socket failed: {} (errno={})",
@@ -129,14 +54,14 @@ srv::Server srv::init()
                      srv.error_no);
         return srv;
     }
-    util::devprint("server: server file descriptor created. srv_fd={}", srv.sock_fd);
+    util::devprint("server: server file descriptor created. srv_fd={}", srv.socket_fd);
 
     // ipv4 listener pollfd
-    srv.pfds[0].fd = srv.sock_fd;
+    srv.pfds[0].fd = srv.socket_fd;
     util::devprint("server: poll file descriptor created. poll_fd={}", srv.pfds[0].fd);
 
     int yes = 1;
-    int sock_opt = ::setsockopt(srv.sock_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)); // fix "Address already in use" error
+    int sock_opt = ::setsockopt(srv.socket_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)); // fix "Address already in use" error
     if (sock_opt == -1) {
         srv.error_no = errno;
         srv.error = std::strerror(srv.error_no);
@@ -158,6 +83,82 @@ srv::Server srv::init()
     return srv;
 }
 
+void srv::run(Server& srv)
+{
+    SocketAddressStorage client_addr;
+    char s[INET6_ADDRSTRLEN];
+
+    // cleanup zombie processes
+    SignalAction sa{};
+    sa.sa_handler = srv::sigchld_handler;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = SA_RESTART;
+    if (sigaction(SIGCHLD, &sa, nullptr) == -1) {
+        int error = errno;
+        std::println(stderr, "server: sigaction failed: {} (errno={})",
+                     std::strerror(error),
+                     error);
+        exit(1);
+    }
+
+    util::devprint("server: waiting for connections");
+
+    while (true) {
+        int num_events = ::poll(srv.pfds, srv.pfds_size, Server::POLLFD_TIMEOUT);
+
+        if (num_events == 0) {
+            util::devprint("server: poll timed out ({}ms)", Server::POLLFD_TIMEOUT);
+            continue;
+        }
+
+        if (num_events == -1)
+            continue;
+
+        // If not poll, ignore
+        if (!(srv.pfds[0].revents & POLLIN))
+            continue;
+
+        int client_fd = srv::accept(srv, client_addr);
+        if (client_fd == -1) 
+            continue;
+::
+        inet_ntop(client_addr.ss_family,
+                    http::get_in_addr((SocketAddress *)&client_addr),
+                    s,
+                    sizeof(s));
+        std::println("server: received connection from {}", s);
+
+        const std::string msg = "Connected to genzoku's server!";
+        // const HttpResponse =
+        const std::string payload = std::format(
+            "HTTP/1.1 200 OK\r\n"
+            "Content-Type: text/plain\r\n"
+            "Content-Length: {}\r\n"
+            "Connection: close\r\n"
+            "\r\n{}",
+            msg.size(), msg
+        );
+
+        pid_t f = fork();
+        if (f == -1) {
+            srv.error_no = errno;
+            srv.error = std::strerror(srv.error_no);
+            std::println(stderr, "server: error occured while forking: {} (errno={})",
+                         srv.error,
+                         srv.error_no);
+            close(srv.socket_fd);
+            _exit(0);
+        } else if (f == 0) {
+            close(srv.socket_fd);
+            http::send_msg(client_fd, payload, 0);
+            close(client_fd);
+            _exit(0);
+        } else {
+            close(client_fd);
+        }
+    }
+}
+
 // void srv::add_to_pfds(srv::Server &srv, int new_pfd) {
 //     if (srv.pfds_count >= std::size(srv.pfds)) {
 //         srv.pfds_size *= 2;
@@ -167,12 +168,12 @@ srv::Server srv::init()
 
 bool srv::bind(Server& s)
 {
-    if (s.ai == nullptr) {
+    if (s.address_info == nullptr) {
         s.error = "No address info avaiable";
         return false;
     }
 
-    int res = ::bind(s.sock_fd, s.ai->ai_addr, s.ai->ai_addrlen);
+    int res = ::bind(s.socket_fd, s.address_info->ai_addr, s.address_info->ai_addrlen);
 
     if (res == -1) {
         s.error_no = errno; 
@@ -182,24 +183,24 @@ bool srv::bind(Server& s)
                      s.error_no);
         return false;
     }
-    util::devprint("server: bind success. srv_fd={}", s.sock_fd);
+    util::devprint("server: bind success. srv_fd={}", s.socket_fd);
     return true; 
 }
 
 bool srv::listen(Server& s)
 {
-    int res = ::listen(s.sock_fd, Server::BACKLOG);
+    int res = ::listen(s.socket_fd, Server::BACKLOG);
     if (res == -1) { 
         int error = errno;
         std::println(stderr, "listen failed: {} (errno={})",
                      std::strerror(error), error);
         return false;
     }
-    util::devprint("server: listen success. srv_fd={}", s.sock_fd);
+    util::devprint("server: listen success. srv_fd={}", s.socket_fd);
     return true;
 }
 
-bool srv::connect(int client_fd, const ::addrinfo *srv_addr)
+bool srv::connect(int client_fd, const ::AddressInfo *srv_addr)
 {
     int res = ::connect(client_fd, srv_addr->ai_addr, srv_addr->ai_addrlen);
     if (res == -1) {
@@ -213,10 +214,10 @@ bool srv::connect(int client_fd, const ::addrinfo *srv_addr)
     return true;
 }
 
-int srv::accept(Server& s, ::sockaddr_storage& client_addr)
+int srv::accept(Server& s, ::SocketAddressStorage& client_addr)
 {
     socklen_t client_len = sizeof(client_addr);
-    int client_fd = ::accept(s.sock_fd, reinterpret_cast<sockaddr*>(&client_addr), &client_len);
+    int client_fd = ::accept(s.socket_fd, reinterpret_cast<SocketAddress*>(&client_addr), &client_len);
     if (client_fd == -1) {
         int error = errno;
         s.error = std::strerror(error);
@@ -258,10 +259,10 @@ char* srv::parse(char line[], const char symbol[])
 srv::Server::~Server()
 {
     util::devprint("Server destructor called");
-    if (sock_fd != -1)
-        ::close(sock_fd);
-    if (ai != nullptr) 
-        freeaddrinfo(ai); // free the linked list
+    if (socket_fd != -1)
+        ::close(socket_fd);
+    if (address_info != nullptr) 
+        freeaddrinfo(address_info); // free the linked list
 }
 
 // private

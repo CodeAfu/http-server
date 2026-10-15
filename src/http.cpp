@@ -1,10 +1,10 @@
-#include "http.hpp"
-#include "util.hpp"
-
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <print>
+
+#include "http.hpp"
+#include "util.hpp"
 
 #define pack754_32(f) (pack754(f), 32, 8)
 #define pack754_64(f) (pack754(f), 64, 11)

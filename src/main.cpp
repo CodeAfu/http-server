@@ -10,7 +10,7 @@
 void sample();
 
 int main(int argc, char *argv[]) {
-    // sample();
+    sample();
     in6_addr ia6 = IN6ADDR_ANY_INIT;
 
     sockaddr_in sa{};
@@ -25,6 +25,8 @@ int main(int argc, char *argv[]) {
     // sizeof(ipv6_text));
     sa6.sin6_addr = IN6ADDR_ANY_INIT;
     inet_ntop(AF_INET6, &(sa6.sin6_addr), ipv6_text, INET6_ADDRSTRLEN);
+
+    util::devprint("size={}", sizeof(HttpResponse));
 
     return util::tryCatch([] {
         srv::Server s = srv::init();
@@ -45,7 +47,7 @@ void sample() {
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
 
-    int status = getaddrinfo("projectzoku.site", "443", &hints, &servinfo);
+    int status = ::getaddrinfo("projectzoku.site", "443", &hints, &servinfo);
     if (status != 0) {
         std::println(stderr, "fail: {}", gai_strerror(status));
         return;

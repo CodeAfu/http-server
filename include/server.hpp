@@ -4,8 +4,7 @@
 #include <sys/poll.h>
 #include <sys/socket.h>
 
-struct addrinfo;
-struct sockaddr_storage;
+#include "base.h"
 
 namespace srv {
 class server_error : public std::runtime_error {
@@ -15,14 +14,13 @@ public:
 
 struct Server {
     static constexpr std::size_t PORT = 8096;
-    static constexpr std::size_t MAX_CLIENTS =
-        10; // <sys/socket.h> SOMAXCONN = 4096
-    static constexpr std::size_t POLLFD_TIMEOUT = 4000;
+    static constexpr std::size_t MAX_CLIENTS = 10; // <sys/socket.h> SOMAXCONN = 4096
+    static constexpr std::size_t POLLFD_TIMEOUT = 1000;
     static constexpr int BACKLOG = 10;
 
-    ::addrinfo *ai = nullptr;
-    int sock_fd = -1;
-    pollfd pfds[MAX_CLIENTS + 2]{};
+    AddressInfo *address_info = nullptr;
+    int socket_fd = -1;
+    PollFD pfds[MAX_CLIENTS + 2]{};
     std::size_t pfds_size = MAX_CLIENTS + 1;
     // std::size_t pfds_count = 0;
 
@@ -43,8 +41,8 @@ Server init();
 void run(Server &s);
 bool bind(Server &s);
 bool listen(Server &s);
-bool connect(int client_fd, const ::addrinfo *srv_addr);
-int accept(Server &s, ::sockaddr_storage &client_addr);
-void *get_in_addr(::sockaddr *sa);
+bool connect(int client_fd, const AddressInfo *srv_addr);
+int accept(Server &s, SocketAddressStorage &client_addr);
+void *get_in_addr(SocketAddress *sa);
 char *parse(char line[], const char symbol[]);
 } // namespace srv
