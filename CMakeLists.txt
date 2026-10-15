@@ -8,4 +8,5 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS src/*.cpp)
 
 add_executable(http-server ${SOURCES})
+target_compile_options(http-server PRIVATE -Wall -Wextra -ggdb)
 target_include_directories(http-server PRIVATE include)

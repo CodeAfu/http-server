@@ -104,19 +104,19 @@ void srv::run(Server& srv)
     util::devprint("server: waiting for connections");
 
     while (true) {
-        int num_events = ::poll(srv.pfds, srv.pfds_size, Server::POLLFD_TIMEOUT);
-
-        if (num_events == 0) {
-            util::devprint("server: poll timed out ({}ms)", Server::POLLFD_TIMEOUT);
-            continue;
-        }
-
-        if (num_events == -1)
-            continue;
-
-        // If not poll, ignore
-        if (!(srv.pfds[0].revents & POLLIN))
-            continue;
+        // int num_events = ::poll(srv.pfds, srv.pfds_size, Server::POLLFD_TIMEOUT);
+        //
+        // if (num_events == 0) {
+        //     util::devprint("server: poll timed out ({}ms)", Server::POLLFD_TIMEOUT);
+        //     continue;
+        // }
+        //
+        // if (num_events == -1)
+        //     continue;
+        //
+        // // If not poll, ignore
+        // if (!(srv.pfds[0].revents & POLLIN))
+        //     continue;
 
         int client_fd = srv::accept(srv, client_addr);
         if (client_fd == -1) 

@@ -2,36 +2,40 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <string>
+#include <vector>
 
-#define MAX_HEADERS 32
+namespace ContentType {
+inline constexpr std::string_view TEXT = "text/plain";
+inline constexpr std::string_view JSON = "application/json";
+} // namespace ContentType
 
-typedef struct {
-    char* name;
-    char* value;
-} HttpHeader;
+namespace MethodType {
+inline constexpr std::string_view GET = "GET";
+inline constexpr std::string_view POST = "POST";
+inline constexpr std::string_view DELETE = "DELETE";
+inline constexpr std::string_view PUT = "PUT";
+} // namespace MethodType
 
-typedef struct {
-    char *buffer; // all request data
+struct HttpHeader {
+    std::string name;
+    std::string value;
+};
 
-    char* method; // "GET"
-    char* target; // "/index.html"
-    char* version; // "HTTP/1.1"
+struct HttpRequest {
+    std::string method; // "GET"
+    std::string target; // "/index.html"
+    std::string version; // "HTTP/1.1"
 
-    HttpHeader headers[MAX_HEADERS];
-    size_t header_count;
-    
-    char* body;
-    size_t body_len;
-} HttpRequest;
+    std::vector<HttpHeader> headers;
+    std::string body;
+};
 
-typedef struct {
+struct HttpResponse {
     uint16_t status; // 200, 404
-    const char* reason; // "OK", "Not Found"
-    const char* version; // "HTTP/1.1"
+    const std::string reason; // "OK", "Not Found"
+    const std::string version; // "HTTP/1.1"
 
-    HttpHeader header[MAX_HEADERS];
-    size_t header_count;
-
-    const char* body;
-    size_t body_len;
-} HttpResponse;
+    std::vector<HttpHeader> headers;
+    const std::string body;
+};

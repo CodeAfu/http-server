@@ -20,6 +20,6 @@ float ntohf(uint32_t p);
 uint64_t pack754(long double f, unsigned bits, unsigned expbits);
 long double unpack754(uint64_t i, unsigned bits, unsigned expbits);
 
-HttpRequest get_http_request();
-HttpResponse create_http_response();
+HttpRequest get_http_request(std::string_view raw_request);
+std::string create_http_response(HttpResponse response);
 } // namespace http

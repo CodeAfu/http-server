@@ -2,6 +2,7 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <print>
+#include <ranges>
 
 #include "http.hpp"
 #include "util.hpp"
@@ -187,4 +188,34 @@ long double unpack754(uint64_t i, unsigned bits, unsigned expbits)
     result *= (i>>(bits-1))&1? -1.0: 1.0;
 
     return result;
+}
+
+HttpRequest http::get_http_request(std::string_view raw_request)
+{
+    auto lines = raw_request | std::views::split(std::string("\r\n"));
+    for (auto part : lines) {
+        std::string line(part.begin(), part.end());
+    }
+}
+
+std::string create_http_response(HttpResponse resp)
+{
+    std::string payload = std::format(
+        "HTTP/1.1 {} {}\r\n"
+        "Content-Type: {}\r\n"
+        "Content-Length: {}\r\n"
+        "Connection: close\r\n",
+        resp.status, resp.reason,
+        ContentType::TEXT,
+        resp.body.size()
+    );
+
+    for (const auto &[name, value] : resp.headers) {
+        payload += std::format("{}: {}\r\n", name, value);
+    }
+    
+    payload += "\r\n";
+    payload += "resp.body";
+
+    return payload;
 }
