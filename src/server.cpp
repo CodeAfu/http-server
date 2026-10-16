@@ -24,15 +24,17 @@ void sigchld_handler(int s);
 
 srv::Server srv::init()
 {
+    Server srv{};
+
     /* Read addreess info */
-    // AddressInfo hints = AddressInfo{
-    //     .ai_flags = AI_PASSIVE,     // fill the ip for me
-    //     .ai_family = AF_INET,       // IPv4
-    //     .ai_socktype = SOCK_STREAM, // TCP stream sockets
-    // };
+    AddressInfo hints = AddressInfo{
+        .ai_flags = AI_PASSIVE,     // fill the ip for me
+        .ai_family = AF_INET,       // IPv4
+        .ai_socktype = SOCK_STREAM, // TCP stream sockets
+    };
 
+    srv.address_info = http::get_addr_info(nullptr, std::to_string(Server::PORT).c_str(), hints);
 
-    // srv.address_info = http::get_addr_info(nullptr, std::to_string(Server::PORT).c_str(), hints);
     // for (AddressInfo *p = srv.address_info; p != nullptr; p = p->ai_next)
     //     http::print_addr_info(*p);
 
@@ -46,7 +48,6 @@ srv::Server srv::init()
     // util::devprint("server: poll file descriptor created. poll_fd={}", srv.pfds[0].fd);
 
     /* Server initalization */
-    Server srv{};
     if (!srv::create_socket(srv))
         return srv;
 
