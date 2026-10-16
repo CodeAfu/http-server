@@ -36,9 +36,10 @@ struct Server {
 //     sockaddr_storage address;
 // };
 
-Server init();
 // void add_to_pfds(Server &s, int new_pfd);
+Server init();
 void run(Server &s);
+bool create_socket(Server &s);
 bool bind(Server &s);
 bool listen(Server &s);
 bool connect(int client_fd, const AddressInfo *srv_addr);

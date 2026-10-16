@@ -24,44 +24,40 @@ void sigchld_handler(int s);
 
 srv::Server srv::init()
 {
-    Server srv{};
-    AddressInfo hints = AddressInfo{
-        .ai_flags = AI_PASSIVE,     // fill the ip for me
-        .ai_family = AF_INET,       // IPv4
-        .ai_socktype = SOCK_STREAM, // TCP stream sockets
-    };
+    /* Read addreess info */
+    // AddressInfo hints = AddressInfo{
+    //     .ai_flags = AI_PASSIVE,     // fill the ip for me
+    //     .ai_family = AF_INET,       // IPv4
+    //     .ai_socktype = SOCK_STREAM, // TCP stream sockets
+    // };
 
+
+    // srv.address_info = http::get_addr_info(nullptr, std::to_string(Server::PORT).c_str(), hints);
+    // for (AddressInfo *p = srv.address_info; p != nullptr; p = p->ai_next)
+    //     http::print_addr_info(*p);
+
+    /* Init poll fds */
     // initailize poll file descriptors
-    for (std::size_t i = 0; i < srv.pfds_size; i++) {
-        srv.pfds[i].fd = -1;
-        srv.pfds[i].events = POLLIN;
-        srv.pfds[i].revents = 0;
-    }
+    // for (std::size_t i = 0; i < srv.pfds_size; i++) {
+    //     srv.pfds[i].fd = -1;
+    //     srv.pfds[i].events = POLLIN;
+    //     srv.pfds[i].revents = 0;
+    // }
+    // util::devprint("server: poll file descriptor created. poll_fd={}", srv.pfds[0].fd);
 
-    srv.address_info =
-        http::get_addr_info(nullptr, std::to_string(Server::PORT).c_str(), hints);
-
-    for (AddressInfo *p = srv.address_info; p != nullptr; p = p->ai_next)
-        http::print_addr_info(*p);
-
-    srv.socket_fd = ::socket(srv.address_info->ai_family, srv.address_info->ai_socktype,
-                          srv.address_info->ai_protocol);
-    if (srv.socket_fd == -1) {
-        srv.error_no = errno;
-        srv.error = std::strerror(srv.error_no);
-        std::println(stderr, "socket failed: {} (errno={})",
-                     srv.error,
-                     srv.error_no);
+    /* Server initalization */
+    Server srv{};
+    if (!srv::create_socket(srv))
         return srv;
-    }
-    util::devprint("server: server file descriptor created. srv_fd={}", srv.socket_fd);
 
     // ipv4 listener pollfd
-    srv.pfds[0].fd = srv.socket_fd;
-    util::devprint("server: poll file descriptor created. poll_fd={}", srv.pfds[0].fd);
+    // srv.pfds[0].fd = srv.socket_fd;
 
     int yes = 1;
-    int sock_opt = ::setsockopt(srv.socket_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)); // fix "Address already in use" error
+    int sock_opt = ::setsockopt(srv.socket_fd,
+                                SOL_SOCKET, 
+                                SO_REUSEADDR, 
+                                &yes, sizeof(yes)); // fix "Address already in use" error
     if (sock_opt == -1) {
         srv.error_no = errno;
         srv.error = std::strerror(srv.error_no);
@@ -165,6 +161,23 @@ void srv::run(Server& srv)
 //         srv.pfds = realloc(srv.pfds, srv.pfds_size);
 //     }
 // }
+//
+
+bool srv::create_socket(Server &s)
+{
+    s.socket_fd = ::socket(s.address_info->ai_family, s.address_info->ai_socktype,
+                           s.address_info->ai_protocol);
+    if (s.socket_fd == -1) {
+        s.error_no = errno;
+        s.error = std::strerror(s.error_no);
+        std::println(stderr, "socket failed: {} (errno={})",
+                     s.error,
+                     s.error_no);
+        return false;
+    }
+    util::devprint("server: server file descriptor created. server_fd={}", s.socket_fd);
+    return true;
+}
 
 bool srv::bind(Server& s)
 {
@@ -183,7 +196,7 @@ bool srv::bind(Server& s)
                      s.error_no);
         return false;
     }
-    util::devprint("server: bind success. srv_fd={}", s.socket_fd);
+    util::devprint("server: bind success. server_fd={}", s.socket_fd);
     return true; 
 }
 
@@ -196,7 +209,7 @@ bool srv::listen(Server& s)
                      std::strerror(error), error);
         return false;
     }
-    util::devprint("server: listen success. srv_fd={}", s.socket_fd);
+    util::devprint("server: listen success. server_fd={}", s.socket_fd);
     return true;
 }
 
