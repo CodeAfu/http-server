@@ -4,6 +4,7 @@
 #include <print>
 #include <ranges>
 
+#include "base.h"
 #include "http.hpp"
 #include "util.hpp"
 
@@ -12,9 +13,9 @@
 #define unpack754_32(i) (unpack754((i), 32, 8))
 #define unpack754_64(i) (unpack754((i), 64, 11))
 
-addrinfo* http::get_addr_info(const char *host, const char* port, const ::addrinfo &hints)
+AddressInfo* http::get_addr_info(const char *host, const char* port, const ::AddressInfo &hints)
 {
-    addrinfo *results = nullptr;
+    AddressInfo *results = nullptr;
     int error = getaddrinfo(host, port, &hints, &results);
     if (error != 0) {
         std::println(stderr, "getaddrinfo failed: {}", gai_strerror(error));
@@ -23,19 +24,19 @@ addrinfo* http::get_addr_info(const char *host, const char* port, const ::addrin
     return results;
 }
 
-void* http::get_in_addr(::sockaddr *sa)
+void* http::get_in_addr(::SocketAddress *sa)
 {
     if (sa->sa_family == AF_INET) {
-        return &(((sockaddr_in *)sa)->sin_addr);
+        return &(((SocketAddressIPv4 *)sa)->sin_addr);
     } else if (sa->sa_family == AF_INET6) {
-        return &(((sockaddr_in6 *)sa)->sin6_addr);
+        return &(((SocketAddressIPv6 *)sa)->sin6_addr);
     }
     std::println(stderr, "get_in_addr error: no sockinaddr found.");
     return nullptr;
 }
 
 
-void http::print_addr_info(const ::addrinfo &addr_info)
+void http::print_addr_info(const ::AddressInfo &addr_info)
 {
     char host[NI_MAXHOST]{};
     char service[NI_MAXSERV]{};
@@ -198,7 +199,7 @@ HttpRequest http::get_http_request(std::string_view raw_request)
     }
 }
 
-std::string create_http_response(HttpResponse resp)
+std::string http::create_http_response(HttpResponse resp)
 {
     std::string payload = std::format(
         "HTTP/1.1 {} {}\r\n"
@@ -215,7 +216,7 @@ std::string create_http_response(HttpResponse resp)
     }
     
     payload += "\r\n";
-    payload += "resp.body";
+    payload += resp.body;
 
     return payload;
 }

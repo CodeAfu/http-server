@@ -56,8 +56,8 @@ srv::Server srv::init()
 
     int yes = 1;
     int sock_opt = ::setsockopt(srv.socket_fd,
-                                SOL_SOCKET, 
-                                SO_REUSEADDR, 
+                                SOL_SOCKET,
+                                SO_REUSEADDR,
                                 &yes, sizeof(yes)); // fix "Address already in use" error
     if (sock_opt == -1) {
         srv.error_no = errno;
@@ -120,21 +120,21 @@ void srv::run(Server& srv)
             continue;
 ::
         inet_ntop(client_addr.ss_family,
-                    http::get_in_addr((SocketAddress *)&client_addr),
-                    s,
-                    sizeof(s));
+                  http::get_in_addr((SocketAddress *)&client_addr),
+                  s,
+                  sizeof(s));
         std::println("server: received connection from {}", s);
 
         const std::string msg = "Connected to genzoku's server!";
-        // const HttpResponse =
-        const std::string payload = std::format(
-            "HTTP/1.1 200 OK\r\n"
-            "Content-Type: text/plain\r\n"
-            "Content-Length: {}\r\n"
-            "Connection: close\r\n"
-            "\r\n{}",
-            msg.size(), msg
-        );
+        const HttpResponse response{
+            .status = StatusCode::OK,
+            .reason = header::status_reason(StatusCode::OK),
+            .version = "HTTP/1.1",
+            .headers = {},
+            .body = msg
+        };
+        const std::string payload = http::create_http_response(response);
+        http::send_msg(client_fd, payload, 0);
 
         pid_t f = fork();
         if (f == -1) {
@@ -166,7 +166,8 @@ void srv::run(Server& srv)
 
 bool srv::create_socket(Server &s)
 {
-    s.socket_fd = ::socket(s.address_info->ai_family, s.address_info->ai_socktype,
+    s.socket_fd = ::socket(s.address_info->ai_family, 
+                           s.address_info->ai_socktype,
                            s.address_info->ai_protocol);
     if (s.socket_fd == -1) {
         s.error_no = errno;
@@ -187,7 +188,9 @@ bool srv::bind(Server& s)
         return false;
     }
 
-    int res = ::bind(s.socket_fd, s.address_info->ai_addr, s.address_info->ai_addrlen);
+    int res = ::bind(s.socket_fd,
+                     s.address_info->ai_addr,
+                     s.address_info->ai_addrlen);
 
     if (res == -1) {
         s.error_no = errno; 
