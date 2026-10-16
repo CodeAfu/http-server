@@ -1,4 +1,5 @@
 #include <arpa/inet.h>
+#include <expected>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <print>
@@ -12,6 +13,11 @@
 #define pack754_64(f) (pack754(f), 64, 11)
 #define unpack754_32(i) (unpack754((i), 32, 8))
 #define unpack754_64(i) (unpack754((i), 64, 11))
+
+enum class ParseError {
+    InvalidRequestLine,
+    InvalidHeader,
+};
 
 AddressInfo* http::get_addr_info(const char *host, const char* port, const ::AddressInfo &hints)
 {
@@ -89,14 +95,79 @@ bool http::send_msg(int sock_fd, const std::string& msg, int flags = 0)
     return true;
 }
 
-const std::string& http::recv_msg(int sock_fd, std::string& msg, int flags = 0)
+const std::string http::recv_msg(int sock_fd, int flags = 0)
 {
-    ssize_t received = ::recv(sock_fd, msg.data(), msg.size(), flags);
-    if (received <= 0)
-        msg.clear();
+    std::string message(4096, '\0');
+    ssize_t received = ::recv(sock_fd, message.data(), message.size(), flags);
+    if (received == -1) {
+        int error_no = errno;
+        auto error = std::strerror(error_no);
+        std::println(stderr, "server: error occured while receiving message from client: {} (errno={})",
+                     error,
+                     error_no);
+    }
 
-    msg.resize(received);
-    return msg;
+    if (received <= 0)
+        message.clear();
+
+    message.resize(static_cast<std::size_t>(received));
+    return message;
+}
+
+std::expected<void, ParseError> parse_request_line(HttpRequest& req, std::string request_line)
+{
+    auto words = request_line
+        | std::views::split(std::string{" "});
+
+    for (auto part : words) {
+        std::string word(part.begin(), part.end());
+        // GET /test HTTP/1.1
+    }
+}
+
+HttpRequest http::get_http_request(const std::string& raw_request)
+{
+    HttpRequest out;
+    auto lines = raw_request 
+        | std::views::split(std::string{"\r\n"})
+        | std::views::enumerate;
+
+    for (auto [line_no, part] : lines) {
+        std::string line(part.begin(), part.end());
+        if (line_no == 0) {
+            if (!parse_request_line(out, line))
+                return {};
+        }
+    }
+
+    // GET /test HTTP/1.1
+    // Host: localhost:8096
+    // User-Agent: curl/8.22.0
+    // Accept: */*
+    // Content-Type: application/json
+    // Content-Length: 20
+}
+
+std::string http::create_http_response(const HttpResponse& resp)
+{
+    std::string payload = std::format(
+        "HTTP/1.1 {} {}\r\n"
+        "Content-Type: {}\r\n"
+        "Content-Length: {}\r\n"
+        "Connection: close\r\n",
+        resp.status, resp.reason,
+        ContentType::TEXT,
+        resp.body.size()
+    );
+
+    for (const auto &[name, value] : resp.headers) {
+        payload += std::format("{}: {}\r\n", name, value);
+    }
+    
+    payload += "\r\n";
+    payload += resp.body;
+
+    return payload;
 }
 
 uint32_t http::htonf(float f)
@@ -191,32 +262,3 @@ long double unpack754(uint64_t i, unsigned bits, unsigned expbits)
     return result;
 }
 
-HttpRequest http::get_http_request(std::string_view raw_request)
-{
-    auto lines = raw_request | std::views::split(std::string("\r\n"));
-    for (auto part : lines) {
-        std::string line(part.begin(), part.end());
-    }
-}
-
-std::string http::create_http_response(HttpResponse resp)
-{
-    std::string payload = std::format(
-        "HTTP/1.1 {} {}\r\n"
-        "Content-Type: {}\r\n"
-        "Content-Length: {}\r\n"
-        "Connection: close\r\n",
-        resp.status, resp.reason,
-        ContentType::TEXT,
-        resp.body.size()
-    );
-
-    for (const auto &[name, value] : resp.headers) {
-        payload += std::format("{}: {}\r\n", name, value);
-    }
-    
-    payload += "\r\n";
-    payload += resp.body;
-
-    return payload;
-}

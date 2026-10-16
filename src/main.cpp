@@ -28,14 +28,21 @@ int main(int argc, char *argv[]) {
     //
     // util::devprint("size={}", sizeof(HttpResponse));
 
-    return util::tryCatch([] {
-        srv::Server s = srv::init();
-        if (!s.success) {
-            return 1;
-        }
-        srv::run(s);
-        return 0;
-    });
+    srv::Server s = srv::init();
+    if (!s.success)
+        return 1;
+    srv::run(s);
+    return 0;
+
+    /* raddebugger not happy with the tryCatch */
+    // return util::tryCatch([] {
+    //     srv::Server s = srv::init();
+    //     if (!s.success) {
+    //         return 1;
+    //     }
+    //     srv::run(s);
+    //     return 0;
+    // });
 }
 
 void sample() {

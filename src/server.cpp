@@ -125,7 +125,12 @@ void srv::run(Server& srv)
                   sizeof(s));
         std::println("server: received connection from {}", s);
 
-        const std::string msg = "Connected to genzoku's server!";
+        const std::string& client_msg = http::recv_msg(client_fd, 0);
+        // HttpRequest request = 
+        if (client_msg.size() > 0)
+            std::println("server: message received:\n{}", client_msg);
+
+        std::string msg = "Connected to genzoku's server!";
         const HttpResponse response{
             .status = StatusCode::OK,
             .reason = header::status_reason(StatusCode::OK),
@@ -134,7 +139,6 @@ void srv::run(Server& srv)
             .body = msg
         };
         const std::string payload = http::create_http_response(response);
-        http::send_msg(client_fd, payload, 0);
 
         pid_t f = fork();
         if (f == -1) {

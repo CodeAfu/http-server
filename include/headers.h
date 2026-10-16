@@ -5,17 +5,36 @@
 #include <string>
 #include <vector>
 
+#define HTTP_METHODS(name) \
+    X(GET)                 \
+    X(POST)                \
+    X(PUT)                 \
+    X(DELETE)              \
+    X(PATCH)               \
+    X(OPTIONS)
+
+enum class MethodType {
+#define X(name) name,
+    HTTP_METHODS(X)
+#undef X
+};
+
+constexpr std::string_view method_type(MethodType type)
+{
+    switch (type) {
+#define X(name) case MethodType::name: return #name;
+        HTTP_METHODS(X)
+#undef X
+    }
+    return "UNKNOWN";
+}
+
+#undef HTTP_METHODS
+
 namespace ContentType {
 inline constexpr std::string_view TEXT = "text/plain";
 inline constexpr std::string_view JSON = "application/json";
 } // namespace ContentType
-
-namespace MethodType {
-inline constexpr std::string_view GET = "GET";
-inline constexpr std::string_view POST = "POST";
-inline constexpr std::string_view DELETE = "DELETE";
-inline constexpr std::string_view PUT = "PUT";
-} // namespace MethodType
 
 enum StatusCode {
     OK = 200,
@@ -75,4 +94,5 @@ static inline std::string status_reason(StatusCode code)
             return "";
     }
 }
+
 } // namespace header
